@@ -12,6 +12,7 @@ dist/
 
 # Cadangan manual sebelum ada git
 _backup_pbac/
+seed-output/
 
 # Berkas editor dan sistem operasi
 .DS_Store

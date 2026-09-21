@@ -21,6 +21,12 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -trimpath \
     -o cbt-backend ./cmd/api
 
+# Alat seed guru dan penugasan kelas-mapel (biner kedua, dijalankan manual lewat docker exec)
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags="-s -w -X 'main.Version=1.0.0'" \
+    -trimpath \
+    -o seedstaff ./cmd/seedstaff
+
 # ==========================================
 # Stage 2: Final Minimal Runtime Image
 # ==========================================
@@ -39,6 +45,7 @@ RUN mkdir -p /app/uploads/questions && chown -R cbtuser:cbtgroup /app/uploads
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /build/cbt-backend /app/cbt-backend
+COPY --from=builder /build/seedstaff /app/seedstaff
 
 # Set environment
 ENV TZ=Asia/Jakarta

@@ -1,0 +1,185 @@
+{
+  "academic_year": "2026/2027",
+  "classes": [
+    { "name": "X 1", "grade": "X" },
+    { "name": "X 2", "grade": "X" },
+    { "name": "XI 1", "grade": "XI" },
+    { "name": "XI 2", "grade": "XI" },
+    { "name": "XII 1", "grade": "XII" },
+    { "name": "XII 2", "grade": "XII" }
+  ],
+  "subjects": [
+    { "code": "BIN", "name": "Bahasa Indonesia" },
+    { "code": "BIG", "name": "Bahasa Inggris" },
+    { "code": "MAT", "name": "Matematika" },
+    { "code": "BIO", "name": "Biologi" },
+    { "code": "FIS", "name": "Fisika" },
+    { "code": "KIM", "name": "Kimia" },
+    { "code": "PKWU", "name": "PKWU" },
+    { "code": "PJOK", "name": "PJOK" },
+    { "code": "SBD", "name": "Seni Budaya" },
+    { "code": "PAI", "name": "PAI" },
+    { "code": "PANC", "name": "Pendidikan Pancasila" },
+    { "code": "SEJ", "name": "Sejarah" },
+    { "code": "GEO", "name": "Geografi" },
+    { "code": "SOS", "name": "Sosiologi" },
+    { "code": "EKO", "name": "Ekonomi" },
+    { "code": "QH", "name": "Al-Quran Hadits" },
+    { "code": "AKH", "name": "Aqidah Akhlak" },
+    { "code": "FIQ", "name": "Fiqih" },
+    { "code": "BAR", "name": "Bahasa Arab" },
+    { "code": "BKR", "name": "Bahasa Korea" },
+    { "code": "BJW", "name": "Bahasa Jawa" },
+    { "code": "BTQ", "name": "BTQ" },
+    { "code": "KTF", "name": "Konseling/Tahfidz" },
+    { "code": "INF", "name": "Informatika" }
+  ],
+  "teachers": [
+    {
+      "username": "azizah",
+      "full_name": "Azizah, S.Pd., Gr.",
+      "assignments": [
+        { "subject": "BIN", "grades": ["XII"] }
+      ]
+    },
+    {
+      "username": "ainur",
+      "full_name": "Ainur Rosyidah Azmie P., M.Pd.",
+      "assignments": [
+        { "subject": "BIG", "grades": ["X", "XI", "XII"] }
+      ]
+    },
+    {
+      "username": "indah",
+      "full_name": "Indah Ika Setiyoningsih, S.Pd.",
+      "assignments": [
+        { "subject": "BIO", "grades": ["XI"] },
+        { "subject": "PKWU", "grades": ["XI"] },
+        { "subject": "BIN", "grades": ["X"] }
+      ]
+    },
+    {
+      "username": "chudri",
+      "full_name": "Chudri, S.Si.",
+      "assignments": [
+        { "subject": "PJOK", "grades": ["X", "XI", "XII"] },
+        { "subject": "SBD", "grades": ["XI", "XII"] }
+      ]
+    },
+    {
+      "username": "makrufah",
+      "full_name": "Makrufah, S.Ag",
+      "assignments": [
+        { "subject": "PAI", "grades": ["X", "XI", "XII"] },
+        { "subject": "SEJ", "grades": ["X"] }
+      ]
+    },
+    {
+      "username": "suwarno",
+      "full_name": "Suwarno, S.Pd",
+      "assignments": [
+        { "subject": "MAT", "grades": ["XI"] }
+      ]
+    },
+    {
+      "username": "eny",
+      "full_name": "Dra. Eny Suprapti",
+      "assignments": [
+        { "subject": "GEO", "grades": ["X"] }
+      ]
+    },
+    {
+      "username": "suntarita",
+      "full_name": "Dra. Suntarita",
+      "assignments": [
+        { "subject": "SOS", "grades": ["X"] },
+        { "subject": "SEJ", "grades": ["XII"] }
+      ]
+    },
+    {
+      "username": "parjiyo",
+      "full_name": "Parjiyo, S.Pd., M.Pd., Gr.",
+      "assignments": [
+        { "subject": "BIO", "grades": ["X", "XII"] },
+        { "subject": "PKWU", "grades": ["X", "XII"] }
+      ]
+    },
+    {
+      "username": "ika",
+      "full_name": "Ika Fitria Wulandari, S.Pd",
+      "assignments": [
+        { "subject": "MAT", "grades": ["X", "XII"] },
+        { "subject": "BIN", "grades": ["XI"] }
+      ]
+    },
+    {
+      "username": "siti",
+      "full_name": "Siti Syayidatun Nafisah, S.Ag",
+      "assignments": [
+        { "subject": "PANC", "grades": ["X", "XI", "XII"] },
+        { "subject": "QH", "grades": ["X", "XI"] },
+        { "subject": "SEJ", "grades": ["XI"] }
+      ]
+    },
+    {
+      "username": "syukron",
+      "full_name": "Muchammad Syukron, S.Ag.",
+      "assignments": [
+        { "subject": "BAR", "grades": ["X", "XI", "XII"] }
+      ]
+    },
+    {
+      "username": "khoirul",
+      "full_name": "Khoirul Huda",
+      "assignments": [
+        { "subject": "BKR", "grades": ["X", "XI", "XII"] }
+      ]
+    },
+    {
+      "username": "saadatul",
+      "full_name": "Sa'adatul Atiyyah, S.Pd.",
+      "assignments": [
+        { "subject": "KTF", "grades": ["X", "XI", "XII"] },
+        { "subject": "BJW", "grades": ["X", "XI", "XII"] }
+      ]
+    },
+    {
+      "username": "husnul",
+      "full_name": "Husnul Mualif, S.Pd.",
+      "assignments": [
+        { "subject": "FIS", "grades": ["X", "XI", "XII"] }
+      ]
+    },
+    {
+      "username": "najih",
+      "full_name": "M. Ainun Najih R., M.Pd.",
+      "assignments": [
+        { "subject": "BTQ", "grades": ["X", "XI", "XII"] },
+        { "subject": "AKH", "grades": ["XI"] },
+        { "subject": "FIQ", "grades": ["XII"] }
+      ]
+    },
+    {
+      "username": "dwi",
+      "full_name": "Mochamad Dwi Febriansyah",
+      "assignments": [
+        { "subject": "INF", "grades": ["X", "XI", "XII"] }
+      ]
+    },
+    {
+      "username": "diva",
+      "full_name": "Diva Ulya Shofaunnikla, S.E",
+      "assignments": [
+        { "subject": "EKO", "grades": ["X"] },
+        { "subject": "GEO", "grades": ["XI", "XII"] }
+      ]
+    },
+    {
+      "username": "afidatul",
+      "full_name": "Af'idatul Ulya Fauziyah, S.Pd.",
+      "assignments": [
+        { "subject": "KIM", "grades": ["X", "XI", "XII"] }
+      ]
+    }
+  ]
+}
