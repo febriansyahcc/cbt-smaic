@@ -1,9 +1,12 @@
 package middleware
 
 import (
+	"crypto/rand"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"cbt-backend/internal/domain"
@@ -14,14 +17,41 @@ import (
 	"github.com/google/uuid"
 )
 
-var jwtSecret = []byte(getSecret())
+const (
+	publicDefaultJWTSecret = "cbt-highschool-super-secret-key-2026"
+	minJWTSecretLen        = 32
+)
 
-func getSecret() string {
+var (
+	jwtSecretOnce  sync.Once
+	jwtSecretBytes []byte
+)
+
+// ValidateJWTSecret menolak secret kosong, terlalu pendek, atau sama dengan nilai bawaan yang pernah dipublikasikan.
+func ValidateJWTSecret() error {
 	s := os.Getenv("JWT_SECRET")
-	if s == "" {
-		return "cbt-highschool-super-secret-key-2026"
+	switch {
+	case s == "":
+		return errors.New("JWT_SECRET belum diisi")
+	case s == publicDefaultJWTSecret:
+		return errors.New("JWT_SECRET masih memakai nilai bawaan yang publik")
+	case len(s) < minJWTSecretLen:
+		return fmt.Errorf("JWT_SECRET minimal %d karakter", minJWTSecretLen)
 	}
-	return s
+	return nil
+}
+
+// jwtSecret dibaca saat pertama dipakai (setelah godotenv.Load). Tanpa secret valid, kunci acak per proses dipakai; main menolak start lebih dulu.
+func jwtSecret() []byte {
+	jwtSecretOnce.Do(func() {
+		if ValidateJWTSecret() == nil {
+			jwtSecretBytes = []byte(os.Getenv("JWT_SECRET"))
+			return
+		}
+		jwtSecretBytes = make([]byte, 32)
+		_, _ = rand.Read(jwtSecretBytes)
+	})
+	return jwtSecretBytes
 }
 
 type JWTClaims struct {
@@ -46,7 +76,7 @@ func GenerateToken(user domain.User, sessionID string) (string, error) {
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return token.SignedString(jwtSecret())
 }
 
 func AuthRequired(db *repository.Database) fiber.Handler {
@@ -66,7 +96,7 @@ func AuthRequired(db *repository.Database) fiber.Handler {
 			})
 		}
 		token, err := jwt.ParseWithClaims(tokenStr, &JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
+			return jwtSecret(), nil
 		})
 
 		if err != nil || !token.Valid {

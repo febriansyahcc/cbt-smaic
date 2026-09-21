@@ -67,7 +67,7 @@ DB_USER=cbt_user
 DB_PASSWORD=cbt_secret_password_2026
 DB_NAME=cbt_db
 TZ=Asia/Jakarta
-JWT_SECRET=cbt-highschool-super-secret-key-2026
+JWT_SECRET=<isi dengan hasil: openssl rand -hex 32>
 ```
 
 ---

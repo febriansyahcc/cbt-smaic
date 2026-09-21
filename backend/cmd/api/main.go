@@ -21,6 +21,10 @@ func main() {
 	// Load .env if present
 	_ = godotenv.Load()
 
+	if err := middleware.ValidateJWTSecret(); err != nil {
+		log.Fatalf("Fatal: %v. Isi JWT_SECRET di file .env dengan nilai acak, mis. hasil perintah: openssl rand -hex 32", err)
+	}
+
 	// Initialize Database
 	db, err := repository.InitDB()
 	if err != nil {

@@ -36,7 +36,7 @@ services:
     environment:
       PORT: 8080
       DB_DSN: "postgres://${DB_USER:-cbt_user}:${DB_PASSWORD:-cbt_secret_password_2026}@postgres:5432/${DB_NAME:-cbt_db}?sslmode=disable"
-      JWT_SECRET: ${JWT_SECRET:-cbt-highschool-super-secret-key-2026}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET wajib diisi di file .env}
       TZ: ${TZ:-Asia/Jakarta}
     depends_on:
       postgres:
