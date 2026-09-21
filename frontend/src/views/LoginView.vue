@@ -66,36 +66,6 @@
             <span>{{ authStore.loading ? 'Memvalidasi...' : 'Masuk ke Sistem Ujian' }}</span>
           </button>
         </form>
-
-        <!-- Quick Fill Helper for Demo / Testing -->
-        <div class="mt-6 pt-5 border-t border-slate-100">
-          <p class="text-[11px] font-semibold text-slate-400 text-center uppercase tracking-wider mb-2">
-            Akun Percobaan Cepat (Demo):
-          </p>
-          <div class="grid grid-cols-3 gap-1.5 text-[11px]">
-            <button
-              type="button"
-              @click="setQuickCreds('siswa1', 'siswa123')"
-              class="p-2 rounded-lg bg-indigo-50 text-indigo-700 font-semibold hover:bg-indigo-100 transition text-center"
-            >
-              Siswa 1 (Fauzi)
-            </button>
-            <button
-              type="button"
-              @click="setQuickCreds('guru1', 'guru123')"
-              class="p-2 rounded-lg bg-emerald-50 text-emerald-700 font-semibold hover:bg-emerald-100 transition text-center"
-            >
-              Guru / Pengawas
-            </button>
-            <button
-              type="button"
-              @click="setQuickCreds('admin', 'admin123')"
-              class="p-2 rounded-lg bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 transition text-center"
-            >
-              Kurikulum
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- School & Foundation Footer -->
@@ -126,11 +96,6 @@ onMounted(() => {
     sessionStorage.removeItem('cbt_login_error')
   }
 })
-
-const setQuickCreds = (u, p) => {
-  username.value = u
-  password.value = p
-}
 
 const handleLogin = async () => {
   try {
