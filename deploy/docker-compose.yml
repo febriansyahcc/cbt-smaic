@@ -1,6 +1,4 @@
-# Note: Root docker-compose.yml is the primary entrypoint (d:\cbt\docker-compose.yml).
-# This file is retained for deployment directory compatibility.
-version: '3.8'
+name: cbt-system
 
 services:
   postgres:
@@ -9,43 +7,62 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-cbt_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-cbt_secret_password_2026}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME:-cbt_db}
       TZ: ${TZ:-Asia/Jakarta}
     volumes:
-      - cbt_pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cbt_user} -d ${DB_NAME:-cbt_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    networks:
+      - cbt-network
 
   backend:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
+    image: mochamaddwifebriansyah13/cbt-backend:latest
     container_name: cbt-backend
     restart: unless-stopped
     environment:
       PORT: 8080
-      DB_DSN: "postgres://${DB_USER:-cbt_user}:${DB_PASSWORD:-cbt_secret_password_2026}@postgres:5432/${DB_NAME:-cbt_db}?sslmode=disable"
+      DB_DSN: "postgres://${DB_USER:-cbt_user}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-cbt_db}?sslmode=disable"
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET wajib diisi di file .env}
       TZ: ${TZ:-Asia/Jakarta}
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - cbt-network
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: mochamaddwifebriansyah13/cbt-frontend:latest
     container_name: cbt-frontend
     restart: unless-stopped
     ports:
       - "${APP_PORT:-80}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    networks:
+      - cbt-network
 
 volumes:
-  cbt_pgdata:
-    driver: local
+  postgres_data:
+    name: cbt_postgres_data
+  uploads_data:
+    name: cbt_uploads_data
+
+networks:
+  cbt-network:
+    name: cbt_network
+    driver: bridge

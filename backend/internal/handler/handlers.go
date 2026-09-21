@@ -922,7 +922,15 @@ func (h *Handlers) HandleDeleteClass(c *fiber.Ctx) error {
 	if studentCount > 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": fmt.Sprintf("Kelas tidak dapat dihapus karena masih ada %d siswa terdaftar di kelas ini", studentCount),
+			"message": fmt.Sprintf("Kelas tidak dapat dihapus karena masih ada %d siswa terdaftar. Pindahkan atau hapus siswa terlebih dahulu.", studentCount),
+		})
+	}
+	var scheduleCount int64
+	h.repo.DB.Model(&domain.ExamSchedule{}).Where("class_room_id = ?", classID).Count(&scheduleCount)
+	if scheduleCount > 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": fmt.Sprintf("Kelas tidak dapat dihapus karena masih ada %d jadwal ujian terhubung. Hapus jadwal terlebih dahulu.", scheduleCount),
 		})
 	}
 	if err := h.repo.DB.Delete(&domain.ClassRoom{}, "id = ?", classID).Error; err != nil {
