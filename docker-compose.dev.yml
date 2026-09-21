@@ -1,0 +1,50 @@
+name: cbt-system-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cbt-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-cbt_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-cbt_secret_password_2026}
+      POSTGRES_DB: ${DB_NAME:-cbt_db}
+      TZ: ${TZ:-Asia/Jakarta}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cbt_user} -d ${DB_NAME:-cbt_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cbt-dev-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cbt-backend-dev
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      DB_DSN: "postgres://${DB_USER:-cbt_user}:${DB_PASSWORD:-cbt_secret_password_2026}@postgres:5432/${DB_NAME:-cbt_db}?sslmode=disable"
+      JWT_SECRET: ${JWT_SECRET:-cbt-highschool-super-secret-key-2026}
+      TZ: ${TZ:-Asia/Jakarta}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cbt-dev-network
+
+volumes:
+  postgres_dev_data:
+    name: cbt_postgres_dev_data
+
+networks:
+  cbt-dev-network:
+    driver: bridge

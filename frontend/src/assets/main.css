@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+.exam-protection {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.tabular-timer {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Print Optimization for Official Documents */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print, header, aside, nav {
+    display: none !important;
+  }
+  #printable-document {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    visibility: visible !important;
+  }
+}
+
+/* Multilingual & Special Typography */
+.font-arabic {
+  font-family: 'Amiri', serif;
+  direction: rtl;
+  text-align: right;
+  line-height: 2.0;
+  font-size: 1.25rem;
+}
+
+.font-korean {
+  font-family: 'Noto Sans KR', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Rich Content & KaTeX Formula Display */
+.rich-content-rendered {
+  word-break: break-word;
+}
+
+.rich-content-rendered .katex-display {
+  margin: 0.75em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+.rich-content-rendered .katex {
+  font-size: 1.1em;
+}
+
+.rich-content-rendered img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 0.5rem 0;
+  display: inline-block;
+  cursor: zoom-in;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rich-content-rendered img:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}

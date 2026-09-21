@@ -1,0 +1,19 @@
+# Rahasia dan konfigurasi lokal
+.env
+.env.local
+
+# Dependensi dan hasil build
+node_modules/
+dist/
+*.exe
+
+# Database lokal
+*.db
+
+# Cadangan manual sebelum ada git
+_backup_pbac/
+
+# Berkas editor dan sistem operasi
+.DS_Store
+Thumbs.db
+*.log
