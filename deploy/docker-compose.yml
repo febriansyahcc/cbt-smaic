@@ -71,44 +71,11 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  netdata:
-    image: netdata/netdata:stable
-    container_name: cbt-netdata
-    hostname: cbt-vps
-    restart: unless-stopped
-    cap_add:
-      - SYS_PTRACE
-    security_opt:
-      - apparmor:unconfined
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /etc/os-release:/host/etc/os-release:ro
-      - netdata_config:/etc/netdata
-      - netdata_lib:/var/lib/netdata
-      - netdata_cache:/var/cache/netdata
-    ports:
-      - "19999:19999"
-    environment:
-      - NETDATA_CLAIM_TOKEN=
-      - NETDATA_CLAIM_URL=https://app.netdata.cloud
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
 volumes:
   postgres_data:
     name: cbt_postgres_data
   uploads_data:
     name: cbt_uploads_data
-  netdata_config:
-    name: cbt_netdata_config
-  netdata_lib:
-    name: cbt_netdata_lib
-  netdata_cache:
-    name: cbt_netdata_cache
 
 networks:
   cbt-network:
