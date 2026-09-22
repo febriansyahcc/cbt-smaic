@@ -83,17 +83,24 @@ func (s *ProctorService) GetLiveProctorData(scheduleID uuid.UUID) (*LiveProctorS
 		sessionMap[sess.StudentID] = sess
 	}
 
-	// Fetch answer counts per session
+	// Fetch answer counts per session — scoped to this schedule only
+	var sessionIDs []uuid.UUID
+	for _, sess := range sessions {
+		sessionIDs = append(sessionIDs, sess.ID)
+	}
+
 	type AnsCount struct {
 		SessionID uuid.UUID
 		Count     int
 	}
 	var ansCounts []AnsCount
-	s.repo.DB.Model(&domain.StudentAnswer{}).
-		Select("session_id, count(*) as count").
-		Where("selected_option != '' AND selected_option IS NOT NULL").
-		Group("session_id").
-		Scan(&ansCounts)
+	if len(sessionIDs) > 0 {
+		s.repo.DB.Model(&domain.StudentAnswer{}).
+			Select("session_id, count(*) as count").
+			Where("session_id IN ? AND selected_option != '' AND selected_option IS NOT NULL", sessionIDs).
+			Group("session_id").
+			Scan(&ansCounts)
+	}
 
 	ansMap := make(map[uuid.UUID]int)
 	for _, ac := range ansCounts {

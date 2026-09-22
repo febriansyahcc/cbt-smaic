@@ -33,6 +33,11 @@ func InitDB() (*Database, error) {
 		db, err = gorm.Open(postgres.Open(dsn), gormConfig)
 		if err != nil {
 			log.Printf("Failed to connect to PostgreSQL: %v. Falling back to SQLite for seamless operation.", err)
+		} else {
+			sqlDB, _ := db.DB()
+			sqlDB.SetMaxOpenConns(30)
+			sqlDB.SetMaxIdleConns(10)
+			sqlDB.SetConnMaxLifetime(5 * time.Minute)
 		}
 	}
 
