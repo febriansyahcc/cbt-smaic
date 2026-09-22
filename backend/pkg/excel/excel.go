@@ -376,6 +376,226 @@ func GenerateStudentTemplate() (*excelize.File, error) {
 	return f, nil
 }
 
+// ============ CLASSES IMPORT ============
+
+type ParsedClass struct {
+	Name  string
+	Grade string
+	Major string
+}
+
+func ParseClassesFromExcel(r io.Reader) ([]ParsedClass, error) {
+	f, err := excelize.OpenReader(r)
+	if err != nil {
+		return nil, fmt.Errorf("gagal membaca file excel: %w", err)
+	}
+	defer f.Close()
+	rows, err := f.GetRows(f.GetSheetList()[0])
+	if err != nil || len(rows) < 2 {
+		return nil, fmt.Errorf("sheet harus memiliki minimal 1 baris header dan 1 baris data")
+	}
+	var out []ParsedClass
+	for i := 1; i < len(rows); i++ {
+		row := rows[i]
+		if len(row) < 1 || strings.TrimSpace(row[0]) == "" {
+			continue
+		}
+		name := strings.TrimSpace(row[0])
+		grade := ""
+		if len(row) > 1 {
+			grade = strings.TrimSpace(row[1])
+		}
+		major := ""
+		if len(row) > 2 {
+			major = strings.TrimSpace(row[2])
+		}
+		// auto-detect grade from name if not provided
+		if grade == "" {
+			nameLow := strings.ToUpper(name)
+			if strings.Contains(nameLow, "XII") {
+				grade = "XII"
+			} else if strings.Contains(nameLow, "XI") {
+				grade = "XI"
+			} else if strings.Contains(nameLow, "X") {
+				grade = "X"
+			}
+		}
+		out = append(out, ParsedClass{Name: name, Grade: grade, Major: major})
+	}
+	return out, nil
+}
+
+func GenerateClassesTemplate() ([]byte, error) {
+	f := excelize.NewFile()
+	defer f.Close()
+	sheet := "Template Kelas"
+	f.SetSheetName("Sheet1", sheet)
+	headers := []string{"Nama Kelas", "Tingkat (X/XI/XII)", "Jurusan/Program"}
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, h)
+	}
+	examples := [][]string{
+		{"X MIPA 1", "X", "MIPA"},
+		{"X IPS 1", "X", "IPS"},
+		{"XI MIPA 1", "XI", "MIPA"},
+		{"XI IPS 1", "XI", "IPS"},
+		{"XII MIPA 1", "XII", "MIPA"},
+		{"XII MIPA 2", "XII", "MIPA"},
+		{"XII IPS 1", "XII", "IPS"},
+	}
+	for r, ex := range examples {
+		for c, val := range ex {
+			cell, _ := excelize.CoordinatesToCellName(c+1, r+2)
+			f.SetCellValue(sheet, cell, val)
+		}
+	}
+	buf, err := f.WriteToBuffer()
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// ============ SUBJECTS IMPORT ============
+
+type ParsedSubject struct {
+	Code string
+	Name string
+}
+
+func ParseSubjectsFromExcel(r io.Reader) ([]ParsedSubject, error) {
+	f, err := excelize.OpenReader(r)
+	if err != nil {
+		return nil, fmt.Errorf("gagal membaca file excel: %w", err)
+	}
+	defer f.Close()
+	rows, err := f.GetRows(f.GetSheetList()[0])
+	if err != nil || len(rows) < 2 {
+		return nil, fmt.Errorf("sheet harus memiliki minimal 1 baris header dan 1 baris data")
+	}
+	var out []ParsedSubject
+	for i := 1; i < len(rows); i++ {
+		row := rows[i]
+		if len(row) < 2 || strings.TrimSpace(row[0]) == "" || strings.TrimSpace(row[1]) == "" {
+			continue
+		}
+		out = append(out, ParsedSubject{
+			Code: strings.ToUpper(strings.TrimSpace(row[0])),
+			Name: strings.TrimSpace(row[1]),
+		})
+	}
+	return out, nil
+}
+
+func GenerateSubjectsTemplate() ([]byte, error) {
+	f := excelize.NewFile()
+	defer f.Close()
+	sheet := "Template Mapel"
+	f.SetSheetName("Sheet1", sheet)
+	headers := []string{"Kode Mapel", "Nama Mata Pelajaran"}
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, h)
+	}
+	examples := [][]string{
+		{"MTK", "Matematika"},
+		{"BIN", "Bahasa Indonesia"},
+		{"BING", "Bahasa Inggris"},
+		{"FIS", "Fisika"},
+		{"KIM", "Kimia"},
+		{"BIO", "Biologi"},
+		{"SEJ", "Sejarah"},
+		{"GEO", "Geografi"},
+		{"EKO", "Ekonomi"},
+		{"SOS", "Sosiologi"},
+		{"PAI", "Pendidikan Agama Islam"},
+		{"PKN", "Pendidikan Kewarganegaraan"},
+	}
+	for r, ex := range examples {
+		for c, val := range ex {
+			cell, _ := excelize.CoordinatesToCellName(c+1, r+2)
+			f.SetCellValue(sheet, cell, val)
+		}
+	}
+	buf, err := f.WriteToBuffer()
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// ============ TEACHERS IMPORT ============
+
+type ParsedTeacher struct {
+	FullName string
+	Username string
+	Password string
+	Role     string // GURU or ADMIN
+}
+
+func ParseTeachersFromExcel(r io.Reader) ([]ParsedTeacher, error) {
+	f, err := excelize.OpenReader(r)
+	if err != nil {
+		return nil, fmt.Errorf("gagal membaca file excel: %w", err)
+	}
+	defer f.Close()
+	rows, err := f.GetRows(f.GetSheetList()[0])
+	if err != nil || len(rows) < 2 {
+		return nil, fmt.Errorf("sheet harus memiliki minimal 1 baris header dan 1 baris data")
+	}
+	var out []ParsedTeacher
+	for i := 1; i < len(rows); i++ {
+		row := rows[i]
+		if len(row) < 2 || strings.TrimSpace(row[0]) == "" || strings.TrimSpace(row[1]) == "" {
+			continue
+		}
+		fullName := strings.TrimSpace(row[0])
+		username := strings.TrimSpace(row[1])
+		password := "guru123"
+		if len(row) > 2 && strings.TrimSpace(row[2]) != "" {
+			password = strings.TrimSpace(row[2])
+		}
+		role := "GURU"
+		if len(row) > 3 {
+			r4 := strings.ToUpper(strings.TrimSpace(row[3]))
+			if r4 == "ADMIN" || r4 == "ADMINISTRATOR" {
+				role = "ADMIN"
+			}
+		}
+		out = append(out, ParsedTeacher{FullName: fullName, Username: username, Password: password, Role: role})
+	}
+	return out, nil
+}
+
+func GenerateTeachersTemplate() ([]byte, error) {
+	f := excelize.NewFile()
+	defer f.Close()
+	sheet := "Template Guru"
+	f.SetSheetName("Sheet1", sheet)
+	headers := []string{"Nama Lengkap & Gelar", "Username Login", "Password Awal", "Role (GURU/ADMIN)"}
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, h)
+	}
+	examples := [][]string{
+		{"Drs. Ahmad Fauzi, M.Pd", "afauzi", "guru123", "GURU"},
+		{"Hj. Siti Rahayu, S.Pd", "srahayu", "guru123", "GURU"},
+		{"Bambang Supriyadi, S.Pd.I", "bsupriyadi", "guru123", "GURU"},
+	}
+	for r, ex := range examples {
+		for c, val := range ex {
+			cell, _ := excelize.CoordinatesToCellName(c+1, r+2)
+			f.SetCellValue(sheet, cell, val)
+		}
+	}
+	buf, err := f.WriteToBuffer()
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 // ParseStudentsFromExcel parses uploaded student spreadsheet
 func ParseStudentsFromExcel(r io.Reader) ([]ParsedStudent, error) {
 	f, err := excelize.OpenReader(r)

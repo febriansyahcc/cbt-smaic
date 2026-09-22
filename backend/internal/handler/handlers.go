@@ -1448,6 +1448,177 @@ func (h *Handlers) HandleDeleteClassSubject(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "message": "Alokasi kelas mapel berhasil dihapus"})
 }
 
+// ---------------- IMPORT/TEMPLATE HANDLERS (CLASSES, SUBJECTS, TEACHERS) ----------------
+
+func (h *Handlers) HandleGetClassesTemplate(c *fiber.Ctx) error {
+	buf, err := excel.GenerateClassesTemplate()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal membuat template"})
+	}
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Disposition", `attachment; filename="Template_Import_Kelas_CBT.xlsx"`)
+	return c.Send(buf)
+}
+
+func (h *Handlers) HandleImportClassesExcel(c *fiber.Ctx) error {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "File Excel wajib diunggah"})
+	}
+	src, err := fileHeader.Open()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal membaca file"})
+	}
+	defer src.Close()
+
+	parsed, err := excel.ParseClassesFromExcel(src)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	imported, skipped := 0, 0
+	for _, cl := range parsed {
+		var existing domain.ClassRoom
+		if err := h.repo.DB.First(&existing, "name = ?", cl.Name).Error; err == nil {
+			skipped++
+			continue
+		}
+		item := domain.ClassRoom{
+			ID:        uuid.New(),
+			Name:      cl.Name,
+			Grade:     cl.Grade,
+			Major:     cl.Major,
+			CreatedAt: time.Now(),
+		}
+		if err := h.repo.DB.Create(&item).Error; err == nil {
+			imported++
+		} else {
+			skipped++
+		}
+	}
+	return c.JSON(fiber.Map{
+		"success":        true,
+		"imported_count": imported,
+		"skipped_count":  skipped,
+		"message":        fmt.Sprintf("Berhasil mengimpor %d kelas (%d dilewati/duplikat)", imported, skipped),
+	})
+}
+
+func (h *Handlers) HandleGetSubjectsTemplate(c *fiber.Ctx) error {
+	buf, err := excel.GenerateSubjectsTemplate()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal membuat template"})
+	}
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Disposition", `attachment; filename="Template_Import_Mapel_CBT.xlsx"`)
+	return c.Send(buf)
+}
+
+func (h *Handlers) HandleImportSubjectsExcel(c *fiber.Ctx) error {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "File Excel wajib diunggah"})
+	}
+	src, err := fileHeader.Open()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal membaca file"})
+	}
+	defer src.Close()
+
+	parsed, err := excel.ParseSubjectsFromExcel(src)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	imported, skipped := 0, 0
+	for _, s := range parsed {
+		var existing domain.Subject
+		if err := h.repo.DB.First(&existing, "code = ?", s.Code).Error; err == nil {
+			skipped++
+			continue
+		}
+		item := domain.Subject{
+			ID:        uuid.New(),
+			Code:      s.Code,
+			Name:      s.Name,
+			CreatedAt: time.Now(),
+		}
+		if err := h.repo.DB.Create(&item).Error; err == nil {
+			imported++
+		} else {
+			skipped++
+		}
+	}
+	return c.JSON(fiber.Map{
+		"success":        true,
+		"imported_count": imported,
+		"skipped_count":  skipped,
+		"message":        fmt.Sprintf("Berhasil mengimpor %d mata pelajaran (%d dilewati/duplikat)", imported, skipped),
+	})
+}
+
+func (h *Handlers) HandleGetTeachersTemplate(c *fiber.Ctx) error {
+	buf, err := excel.GenerateTeachersTemplate()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal membuat template"})
+	}
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Disposition", `attachment; filename="Template_Import_Guru_CBT.xlsx"`)
+	return c.Send(buf)
+}
+
+func (h *Handlers) HandleImportTeachersExcel(c *fiber.Ctx) error {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "File Excel wajib diunggah"})
+	}
+	src, err := fileHeader.Open()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal membaca file"})
+	}
+	defer src.Close()
+
+	parsed, err := excel.ParseTeachersFromExcel(src)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	imported, skipped := 0, 0
+	for _, t := range parsed {
+		var existing domain.User
+		if err := h.repo.DB.First(&existing, "username = ?", t.Username).Error; err == nil {
+			skipped++
+			continue
+		}
+		role := domain.RoleGuru
+		if t.Role == "ADMIN" {
+			role = domain.RoleAdmin
+		}
+		perms, _ := service.ResolveStaffPermissionsOnCreate(role, role == domain.RoleAdmin, nil)
+		user := domain.User{
+			ID:           uuid.New(),
+			Username:     t.Username,
+			PasswordHash: repository.HashPassword(t.Password),
+			FullName:     t.FullName,
+			Role:         role,
+			Permissions:  perms,
+			IsActive:     true,
+			CreatedAt:    time.Now(),
+		}
+		if err := h.repo.DB.Create(&user).Error; err == nil {
+			imported++
+		} else {
+			skipped++
+		}
+	}
+	return c.JSON(fiber.Map{
+		"success":        true,
+		"imported_count": imported,
+		"skipped_count":  skipped,
+		"message":        fmt.Sprintf("Berhasil mengimpor %d akun guru/staf (%d dilewati/duplikat)", imported, skipped),
+	})
+}
+
 // ---------------- EXAM EVENT HANDLERS ----------------
 
 type EventDetailResponse struct {
