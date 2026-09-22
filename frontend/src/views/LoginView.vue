@@ -35,7 +35,7 @@
               type="text"
               required
               autocomplete="username"
-              placeholder="Contoh: siswa1 / 1001 / guru1"
+              placeholder="NIS / Username"
               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition"
             />
           </div>
@@ -86,8 +86,8 @@ import { homePathFor } from '../utils/access'
 const router = useRouter()
 const authStore = useAuthStore()
 
-const username = ref('siswa1')
-const password = ref('siswa123')
+const username = ref('')
+const password = ref('')
 
 onMounted(() => {
   const loginErr = sessionStorage.getItem('cbt_login_error')
