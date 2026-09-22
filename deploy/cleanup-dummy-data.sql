@@ -17,13 +17,24 @@ DECLARE
   dummy_usernames TEXT[] := ARRAY['guru1', 'guru2', 'guru_test', 'test'];
   uname TEXT;
   uid UUID;
+  admin_id UUID;
+  bank_count INT;
 BEGIN
+  -- Cari admin utama untuk menerima pemindahan bank soal
+  SELECT id INTO admin_id FROM users WHERE username = 'admin' AND role = 'ADMIN' LIMIT 1;
+
   FOREACH uname IN ARRAY dummy_usernames LOOP
     SELECT id INTO uid FROM users WHERE username = uname AND role IN ('GURU', 'ADMIN');
     IF uid IS NOT NULL THEN
+      -- Pindahkan bank soal ke admin agar FK tidak error
+      SELECT COUNT(*) INTO bank_count FROM question_banks WHERE created_by_id = uid;
+      IF bank_count > 0 THEN
+        UPDATE question_banks SET created_by_id = admin_id WHERE created_by_id = uid;
+        RAISE NOTICE 'Dipindahkan: % bank soal dari % ke admin', bank_count, uname;
+      END IF;
       -- Hapus alokasi kelas mapel yang dipegang guru ini
       DELETE FROM class_subjects WHERE teacher_id = uid;
-      -- Hapus user
+      -- Baru hapus user
       DELETE FROM users WHERE id = uid;
       RAISE NOTICE 'Dihapus: akun guru/staf dengan username %', uname;
     END IF;

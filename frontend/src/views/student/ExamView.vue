@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useExamStore } from '../../stores/exam'
 import { useAntiCheat } from '../../composables/useAntiCheat'
@@ -44,6 +44,8 @@ useAntiCheat(examStore, (msg) => {
 })
 
 onMounted(() => {
+  examStore.listenNetwork()
+
   // If exam store has no session or questions (e.g. direct page refresh), try restoring
   if (!examStore.sessionId || examStore.questions.length === 0) {
     const activeScheduleId = localStorage.getItem('cbt_active_schedule_id')
@@ -56,5 +58,9 @@ onMounted(() => {
       router.push('/student')
     }
   }
+})
+
+onUnmounted(() => {
+  examStore.cleanupNetwork()
 })
 </script>

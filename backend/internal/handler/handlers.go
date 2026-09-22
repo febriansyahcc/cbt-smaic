@@ -168,6 +168,11 @@ type SyncAnswersRequest struct {
 }
 
 func (h *Handlers) HandleSyncAnswers(c *fiber.Ctx) error {
+	user, err := middleware.GetCurrentUser(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "Unauthorized"})
+	}
+
 	var req SyncAnswersRequest
 	if err := c.BodyParser(&req); err != nil || req.SessionID == uuid.Nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -176,7 +181,7 @@ func (h *Handlers) HandleSyncAnswers(c *fiber.Ctx) error {
 		})
 	}
 
-	count, err := h.examService.SyncAnswers(req.SessionID, req.Answers)
+	count, err := h.examService.SyncAnswers(req.SessionID, user.ID, req.Answers)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -198,12 +203,17 @@ type ViolationRequest struct {
 }
 
 func (h *Handlers) HandleRecordViolation(c *fiber.Ctx) error {
+	user, err := middleware.GetCurrentUser(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "Unauthorized"})
+	}
+
 	var req ViolationRequest
 	if err := c.BodyParser(&req); err != nil || req.SessionID == uuid.Nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Data tidak valid"})
 	}
 
-	count, isBlocked, err := h.examService.RecordViolation(req.SessionID, req.EventType, req.Details)
+	count, isBlocked, err := h.examService.RecordViolation(req.SessionID, user.ID, req.EventType, req.Details)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
 	}
@@ -220,12 +230,17 @@ type SubmitExamRequest struct {
 }
 
 func (h *Handlers) HandleSubmitExam(c *fiber.Ctx) error {
+	user, err := middleware.GetCurrentUser(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "Unauthorized"})
+	}
+
 	var req SubmitExamRequest
 	if err := c.BodyParser(&req); err != nil || req.SessionID == uuid.Nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Session ID wajib disertakan"})
 	}
 
-	score, err := h.examService.SubmitExam(req.SessionID)
+	score, err := h.examService.SubmitExam(req.SessionID, user.ID)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
 	}
@@ -2220,9 +2235,26 @@ func (h *Handlers) HandleToggleSchedule(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "ID tidak valid"})
 	}
 	var sched domain.ExamSchedule
-	if err := h.repo.DB.First(&sched, "id = ?", schedID).Error; err != nil {
+	if err := h.repo.DB.Preload("Bank").First(&sched, "id = ?", schedID).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "Jadwal tidak ditemukan"})
 	}
+
+	// Saat mengaktifkan: wajib ada bank soal yang sudah dikunci
+	if !sched.IsActive {
+		if sched.BankID == nil || *sched.BankID == uuid.Nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"success": false,
+				"message": "Jadwal tidak dapat diaktifkan: bank soal belum ditautkan",
+			})
+		}
+		if sched.Bank == nil || !sched.Bank.IsLocked {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"success": false,
+				"message": "Jadwal tidak dapat diaktifkan: bank soal belum dikunci (naskah masih dalam penyusunan)",
+			})
+		}
+	}
+
 	sched.IsActive = !sched.IsActive
 	h.repo.DB.Save(&sched)
 	return c.JSON(fiber.Map{"success": true, "is_active": sched.IsActive, "message": "Status jadwal berhasil diperbarui"})

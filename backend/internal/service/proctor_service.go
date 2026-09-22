@@ -97,7 +97,7 @@ func (s *ProctorService) GetLiveProctorData(scheduleID uuid.UUID) (*LiveProctorS
 	if len(sessionIDs) > 0 {
 		s.repo.DB.Model(&domain.StudentAnswer{}).
 			Select("session_id, count(*) as count").
-			Where("session_id IN ? AND selected_option != '' AND selected_option IS NOT NULL", sessionIDs).
+			Where("session_id IN ? AND ((selected_option != '' AND selected_option IS NOT NULL) OR (answer_text != '' AND answer_text IS NOT NULL))", sessionIDs).
 			Group("session_id").
 			Scan(&ansCounts)
 	}
@@ -294,10 +294,15 @@ func (s *ProctorService) ExtendTimeAllSchedule(scheduleID uuid.UUID, extraMinute
 	return count, nil
 }
 
-// ForceSubmitSession forces submission of an ongoing exam session and calculates scores
+// ForceSubmitSession forces submission of an ongoing exam session and calculates scores.
+// Dipanggil oleh pengawas (bukan siswa), jadi student_id diambil dari record sesi itu sendiri.
 func (s *ProctorService) ForceSubmitSession(sessionID uuid.UUID) (float64, error) {
+	var session domain.ExamSession
+	if err := s.repo.DB.First(&session, "id = ?", sessionID).Error; err != nil {
+		return 0, errors.New("sesi tidak ditemukan")
+	}
 	examService := NewExamService(s.repo)
-	return examService.SubmitExam(sessionID)
+	return examService.SubmitExam(sessionID, session.StudentID)
 }
 
 // GetViolationLogs returns the log of cheat attempts and supervisor interventions for a session

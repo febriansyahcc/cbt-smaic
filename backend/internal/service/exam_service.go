@@ -251,9 +251,9 @@ func (s *ExamService) StartOrResumeExam(studentUserID uuid.UUID, scheduleID uuid
 }
 
 // SyncAnswers handles idempotent batch upserts from client
-func (s *ExamService) SyncAnswers(sessionID uuid.UUID, items []SyncAnswerItem) (int, error) {
+func (s *ExamService) SyncAnswers(sessionID uuid.UUID, studentUserID uuid.UUID, items []SyncAnswerItem) (int, error) {
 	var session domain.ExamSession
-	if err := s.repo.DB.First(&session, "id = ?", sessionID).Error; err != nil {
+	if err := s.repo.DB.First(&session, "id = ? AND student_id = ?", sessionID, studentUserID).Error; err != nil {
 		return 0, errors.New("sesi tidak valid")
 	}
 
@@ -300,9 +300,9 @@ func (s *ExamService) SyncAnswers(sessionID uuid.UUID, items []SyncAnswerItem) (
 }
 
 // RecordViolation logs anti-cheat event and blocks session if quota reached
-func (s *ExamService) RecordViolation(sessionID uuid.UUID, eventType, details string) (int, bool, error) {
+func (s *ExamService) RecordViolation(sessionID uuid.UUID, studentUserID uuid.UUID, eventType, details string) (int, bool, error) {
 	var session domain.ExamSession
-	if err := s.repo.DB.Preload("Schedule").First(&session, "id = ?", sessionID).Error; err != nil {
+	if err := s.repo.DB.Preload("Schedule").First(&session, "id = ? AND student_id = ?", sessionID, studentUserID).Error; err != nil {
 		return 0, false, errors.New("sesi tidak ditemukan")
 	}
 
@@ -333,9 +333,9 @@ func (s *ExamService) RecordViolation(sessionID uuid.UUID, eventType, details st
 }
 
 // SubmitExam finalizes the exam and auto-calculates total score for multiple choice & short answers
-func (s *ExamService) SubmitExam(sessionID uuid.UUID) (float64, error) {
+func (s *ExamService) SubmitExam(sessionID uuid.UUID, studentUserID uuid.UUID) (float64, error) {
 	var session domain.ExamSession
-	if err := s.repo.DB.Preload("Schedule").First(&session, "id = ?", sessionID).Error; err != nil {
+	if err := s.repo.DB.Preload("Schedule").First(&session, "id = ? AND student_id = ?", sessionID, studentUserID).Error; err != nil {
 		return 0, errors.New("sesi tidak ditemukan")
 	}
 

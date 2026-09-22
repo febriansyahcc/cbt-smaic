@@ -33,13 +33,13 @@
 
       <!-- Right: Sync Status & Submit Button -->
       <div class="flex items-center space-x-2">
-        <!-- Network & Sync Indicator -->
-        <div 
-          class="hidden sm:flex items-center space-x-1 text-[11px] font-medium px-2 py-1 rounded-full"
+        <!-- Network & Sync Indicator: dot selalu tampil, teks hanya di sm+ -->
+        <div
+          class="flex items-center space-x-1 text-[11px] font-medium px-1.5 sm:px-2 py-1 rounded-full"
           :class="syncBadgeClass"
         >
-          <span class="w-2 h-2 rounded-full" :class="syncDotClass"></span>
-          <span>{{ syncStatusText }}</span>
+          <span class="w-2 h-2 rounded-full flex-shrink-0" :class="syncDotClass"></span>
+          <span class="hidden sm:inline">{{ syncStatusText }}</span>
         </div>
 
         <button

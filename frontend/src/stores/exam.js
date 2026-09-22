@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import api from '../services/api'
 import { localExamStorage } from '../services/storage'
+import router from '../router/index.js'
+
+// Referensi handler disimpan di level modul agar bisa di-removeEventListener dengan tepat.
+// Pinia store tidak punya lifecycle, jadi cleanup dilakukan dari ExamView.
+let _onlineHandler = null
+let _offlineHandler = null
 
 export const useExamStore = defineStore('exam', {
   state: () => ({
@@ -24,6 +30,7 @@ export const useExamStore = defineStore('exam', {
     timerHandle: null,
     syncTimerHandle: null,
     scoreResult: null,
+    submittedAt: null,
   }),
   getters: {
     currentQuestion: (state) => state.questions[state.currentIndex] || null,
@@ -83,7 +90,6 @@ export const useExamStore = defineStore('exam', {
 
       this.updatePendingCount()
       this.startCountdown()
-      this.listenNetwork()
 
       return payload
     },
@@ -101,13 +107,18 @@ export const useExamStore = defineStore('exam', {
     },
 
     listenNetwork() {
-      window.addEventListener('online', () => {
-        this.isOnline = true
-        this.flushSyncQueue()
-      })
-      window.addEventListener('offline', () => {
-        this.isOnline = false
-      })
+      if (_onlineHandler) return // sudah terdaftar, jangan duplikat
+      _onlineHandler = () => { this.isOnline = true; this.flushSyncQueue() }
+      _offlineHandler = () => { this.isOnline = false }
+      window.addEventListener('online', _onlineHandler)
+      window.addEventListener('offline', _offlineHandler)
+    },
+
+    cleanupNetwork() {
+      if (_onlineHandler) window.removeEventListener('online', _onlineHandler)
+      if (_offlineHandler) window.removeEventListener('offline', _offlineHandler)
+      _onlineHandler = null
+      _offlineHandler = null
     },
 
     selectOption(optionKey) {
@@ -243,22 +254,23 @@ export const useExamStore = defineStore('exam', {
       // Flush pending queue first
       await this.flushSyncQueue()
 
+      // Catat waktu tepat sebelum request — mendekati submitted_at di server
+      const submittedAt = new Date()
+
       const res = await api.post('/student/exams/submit', {
         session_id: this.sessionId,
       })
 
       this.scoreResult = res.data.total_score
+      this.submittedAt = submittedAt
       localExamStorage.clearSession(this.sessionId)
       return this.scoreResult
     },
 
     autoSubmitOnTimeout() {
       this.submitExam()
-        .then(() => {
-          window.location.href = '/exam-finished'
-        })
-        .catch(() => {
-          window.location.href = '/exam-finished'
+        .finally(() => {
+          router.push('/exam-finished')
         })
     }
   }

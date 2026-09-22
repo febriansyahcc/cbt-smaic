@@ -209,22 +209,24 @@ const handleSubmit = async () => {
 }
 
 const checkUnlockStatus = async () => {
+  const token = localStorage.getItem('cbt_active_token')
+  const scheduleId = localStorage.getItem('cbt_active_schedule_id')
+  if (!token || !scheduleId) {
+    router.push('/student')
+    return
+  }
+
   isChecking.value = true
   try {
-    // Retry starting/resuming to fetch latest status
-    const token = localStorage.getItem('cbt_active_token') || 'CBT2026'
-    const scheduleId = localStorage.getItem('cbt_active_schedule_id')
-    if (scheduleId) {
-      await examStore.startExam(scheduleId, token)
-      if (!examStore.isBlocked) {
-        showToast('Kunci telah dibuka oleh pengawas. Anda dapat melanjutkan ujian!', 'success')
-      } else {
-        await showAlertModal({
-          title: 'Status Masih Terkunci',
-          message: 'Sesi Anda masih berstatus terkunci. Mohon tunggu konfirmasi pengawas.',
-          type: 'warning'
-        })
-      }
+    await examStore.startExam(scheduleId, token)
+    if (!examStore.isBlocked) {
+      showToast('Kunci telah dibuka oleh pengawas. Anda dapat melanjutkan ujian!', 'success')
+    } else {
+      await showAlertModal({
+        title: 'Status Masih Terkunci',
+        message: 'Sesi Anda masih berstatus terkunci. Mohon tunggu konfirmasi pengawas.',
+        type: 'warning'
+      })
     }
   } catch (e) {
     //

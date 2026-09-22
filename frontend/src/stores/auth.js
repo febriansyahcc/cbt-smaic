@@ -84,6 +84,11 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('cbt_token')
       localStorage.removeItem('cbt_user')
       localStorage.removeItem('cbt_profile')
+      localStorage.removeItem('cbt_active_schedule_id')
+      localStorage.removeItem('cbt_active_token')
+      // Bersihkan semua data jawaban offline sesi manapun
+      const offlineKeys = Object.keys(localStorage).filter(k => k.startsWith('cbt_offline_'))
+      offlineKeys.forEach(k => localStorage.removeItem(k))
     }
   }
 })

@@ -33,7 +33,7 @@
         </div>
         <div class="flex justify-between">
           <span class="text-slate-400">Waktu Pengumpulan:</span>
-          <span class="font-mono text-slate-800">{{ currentTime }}</span>
+          <span class="font-mono text-slate-800">{{ submittedTime }}</span>
         </div>
       </div>
 
@@ -59,12 +59,15 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
+import { useExamStore } from '../../stores/exam'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const examStore = useExamStore()
 
-const currentTime = computed(() => {
-  return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB'
+const submittedTime = computed(() => {
+  const d = examStore.submittedAt ?? new Date()
+  return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB'
 })
 
 const handleBackToHome = () => {
