@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
+	"time"
 
 	"cbt-backend/internal/domain"
 	"cbt-backend/internal/handler"
@@ -58,12 +60,29 @@ func main() {
 	// Static Media Serving
 	app.Static("/uploads", "./uploads")
 
-	// Health Check
+	// Health Check — performs a real DB ping so external monitors (e.g. UptimeRobot)
+	// get an accurate signal; returns 503 when the database is unreachable.
 	app.Get("/health", func(c *fiber.Ctx) error {
+		ts := time.Now().Unix()
+		sqlDB, err := db.DB.DB()
+		if err != nil || sqlDB.Ping() != nil {
+			msg := "database unreachable"
+			if err != nil {
+				msg = err.Error()
+			}
+			return c.Status(http.StatusServiceUnavailable).JSON(fiber.Map{
+				"status":    "error",
+				"message":   msg,
+				"version":   "1.0.0",
+				"timestamp": ts,
+			})
+		}
 		return c.JSON(fiber.Map{
-			"status":  "ok",
-			"engine":  "Go Fiber",
-			"message": "CBT High School Backend is running",
+			"status":    "ok",
+			"engine":    "Go Fiber",
+			"message":   "CBT High School Backend is running",
+			"version":   "1.0.0",
+			"timestamp": ts,
 		})
 	})
 

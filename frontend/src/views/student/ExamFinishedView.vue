@@ -21,14 +21,6 @@
         </p>
       </div>
 
-      <!-- Score Card (Auto-Grading Result) -->
-      <div v-if="examStore.scoreResult !== null" class="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl text-center">
-        <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Perolehan Nilai Otomatis (PG)</span>
-        <div class="text-4xl font-black text-indigo-900 mt-1">
-          {{ examStore.scoreResult.toFixed(1) }} <span class="text-sm font-semibold text-slate-500">/ 100</span>
-        </div>
-      </div>
-
       <!-- Student & Exam Details -->
       <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-left text-xs space-y-2 text-slate-600">
         <div class="flex justify-between">
@@ -67,11 +59,9 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
-import { useExamStore } from '../../stores/exam'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const examStore = useExamStore()
 
 const currentTime = computed(() => {
   return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB'
