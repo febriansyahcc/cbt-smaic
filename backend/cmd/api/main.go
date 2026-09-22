@@ -188,6 +188,8 @@ func main() {
 	admin.Post("/schedules/:id/quick-bank", schedulesMgr, handlers.HandleQuickCreateAndLinkBank)
 	admin.Delete("/schedules/:id", schedulesMgr, handlers.HandleDeleteSchedule)
 	admin.Post("/schedules/:id/toggle", schedulesMgr, handlers.HandleToggleSchedule)
+	admin.Get("/schedules/:id/essay-answers", handlers.HandleGetEssayAnswers)
+	admin.Patch("/schedules/:id/essay-answers", handlers.HandleGradeEssayAnswers)
 	admin.Get("/schedules/:id/proctors", perm(pSchedulesRead, pSchedulesManage), handlers.HandleGetScheduleProctors)
 	admin.Get("/proctor-candidates", schedulesMgr, handlers.HandleGetProctorCandidates)
 	admin.Put("/schedules/:id/proctors", schedulesMgr, handlers.HandleSetScheduleProctors)

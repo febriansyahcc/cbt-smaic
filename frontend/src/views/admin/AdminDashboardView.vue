@@ -3667,8 +3667,41 @@
           </button>
         </div>
 
-        <!-- Content Grid (Scrollable Body) -->
-        <div class="p-6 space-y-3.5 text-xs overflow-y-auto flex-1">
+        <!-- Tab Navigation -->
+        <div class="flex gap-1 px-4 pt-3 pb-0 shrink-0 border-b border-slate-100 bg-white">
+          <button
+            type="button"
+            @click="scheduleDetailTab = 'info'"
+            :class="[
+              'px-3 py-2 text-xs font-semibold rounded-t-xl transition cursor-pointer border-b-2 -mb-px',
+              scheduleDetailTab === 'info'
+                ? 'text-indigo-700 border-indigo-600 bg-indigo-50/60'
+                : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
+            ]"
+          >Informasi</button>
+          <button
+            type="button"
+            @click="switchToEssayTab()"
+            :class="[
+              'px-3 py-2 text-xs font-semibold rounded-t-xl transition cursor-pointer border-b-2 -mb-px flex items-center gap-1.5',
+              scheduleDetailTab === 'essay'
+                ? 'text-indigo-700 border-indigo-600 bg-indigo-50/60'
+                : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
+            ]"
+          >
+            <span>Koreksi Essay</span>
+            <span
+              v-if="!essayLoading && essayQuestions.length > 0"
+              :class="[
+                'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold',
+                essayTotalPending === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+              ]"
+            >{{ essayTotalPending === 0 ? 'Selesai' : essayTotalPending }}</span>
+          </button>
+        </div>
+
+        <!-- Tab: Informasi -->
+        <div v-if="scheduleDetailTab === 'info'" class="p-6 space-y-3.5 text-xs overflow-y-auto flex-1">
           <!-- Sesi & Kelas Banner -->
           <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1">
             <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Judul Sesi Ujian</div>
@@ -3739,10 +3772,134 @@
           </div>
         </div>
 
+        <!-- Tab: Koreksi Essay -->
+        <div v-else-if="scheduleDetailTab === 'essay'" class="overflow-y-auto flex-1 p-4 space-y-4 text-xs">
+          <!-- Loading -->
+          <div v-if="essayLoading" class="flex flex-col items-center justify-center py-12 gap-3 text-slate-400">
+            <svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span class="text-xs font-medium">Memuat data jawaban essay...</span>
+          </div>
+
+          <!-- Empty state -->
+          <div v-else-if="essayQuestions.length === 0" class="flex flex-col items-center justify-center py-12 gap-2 text-slate-400">
+            <svg class="w-10 h-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-xs font-medium text-slate-500 text-center">Jadwal ini tidak memiliki soal essay atau isian singkat.</p>
+          </div>
+
+          <!-- Question cards -->
+          <div v-else class="space-y-5">
+            <div
+              v-for="q in essayQuestions"
+              :key="q.question_id"
+              class="border border-slate-200 rounded-2xl overflow-hidden"
+            >
+              <!-- Question header -->
+              <div class="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-black text-slate-800 text-[13px]">No. {{ q.question_number }}</span>
+                  <span class="px-2 py-0.5 bg-white border border-slate-200 text-slate-600 rounded-md text-[10px] font-bold uppercase">{{ q.question_type }}</span>
+                  <span class="text-slate-500 font-medium">Bobot {{ q.score_weight }}</span>
+                </div>
+                <span :class="[
+                  'px-2 py-0.5 rounded-full text-[10px] font-bold',
+                  q.graded_count >= q.total_count ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                ]">
+                  {{ q.graded_count }} / {{ q.total_count }} dinilai
+                </span>
+              </div>
+
+              <!-- Question text -->
+              <div class="px-4 py-3 bg-white border-b border-slate-100">
+                <div class="text-slate-700 font-medium leading-relaxed" v-html="q.content_html"></div>
+              </div>
+
+              <!-- Answers -->
+              <div class="divide-y divide-slate-100">
+                <div
+                  v-for="a in q.answers"
+                  :key="a.answer_id"
+                  class="px-4 py-3 space-y-2.5"
+                  :class="a.is_graded ? 'bg-emerald-50/40' : 'bg-white'"
+                >
+                  <!-- Student info -->
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="font-bold text-slate-800">{{ a.student_name }}</span>
+                      <span class="text-slate-400 font-mono text-[11px]">{{ a.student_nis }}</span>
+                    </div>
+                    <span v-if="a.is_graded" class="flex items-center gap-1 text-emerald-600 font-bold text-[11px]">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Sudah dinilai
+                    </span>
+                  </div>
+
+                  <!-- Answer text -->
+                  <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Jawaban Siswa:</div>
+                    <div class="text-slate-700 leading-relaxed whitespace-pre-wrap">{{ a.answer_text || '(Tidak ada jawaban)' }}</div>
+                  </div>
+
+                  <!-- Grading inputs -->
+                  <div class="flex items-start gap-2 flex-wrap">
+                    <div class="flex items-center gap-1.5">
+                      <label :for="`score-${a.answer_id}`" class="text-slate-600 font-semibold whitespace-nowrap">Nilai:</label>
+                      <input
+                        :id="`score-${a.answer_id}`"
+                        type="number"
+                        min="0"
+                        :max="q.score_weight"
+                        step="0.5"
+                        :value="essayDraft[a.answer_id]?.score_awarded ?? ''"
+                        @input="e => { if (!essayDraft[a.answer_id]) essayDraft[a.answer_id] = { score_awarded: null, teacher_comment: '' }; essayDraft[a.answer_id].score_awarded = e.target.value === '' ? null : parseFloat(e.target.value) }"
+                        class="w-20 px-2 py-1.5 border border-slate-300 rounded-xl font-mono text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
+                        :placeholder="`/ ${q.score_weight}`"
+                      />
+                    </div>
+                    <div class="flex-1 flex items-center gap-1.5 min-w-[140px]">
+                      <label :for="`comment-${a.answer_id}`" class="text-slate-600 font-semibold whitespace-nowrap">Komentar:</label>
+                      <input
+                        :id="`comment-${a.answer_id}`"
+                        type="text"
+                        :value="essayDraft[a.answer_id]?.teacher_comment ?? ''"
+                        @input="e => { if (!essayDraft[a.answer_id]) essayDraft[a.answer_id] = { score_awarded: null, teacher_comment: '' }; essayDraft[a.answer_id].teacher_comment = e.target.value }"
+                        class="flex-1 px-2 py-1.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
+                        placeholder="Opsional..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Save button per question -->
+              <div class="px-4 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button
+                  type="button"
+                  @click="saveEssayQuestion(q)"
+                  :disabled="essaySaving[q.question_id]"
+                  class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  <svg v-if="essaySaving[q.question_id]" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  <span>{{ essaySaving[q.question_id] ? 'Menyimpan...' : `Simpan Penilaian Soal No. ${q.question_number}` }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Actions in Modal (Pinned Footer - Only Edit and Tutup) -->
         <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
           <button
-            v-if="canManageSchedules"
+            v-if="canManageSchedules && scheduleDetailTab === 'info'"
             type="button"
             @click="openEditSchedule(selectedScheduleDetail); showScheduleDetailModal = false"
             class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5"
@@ -5781,6 +5938,13 @@ const scheduleSortOrder = ref('asc')
 const showScheduleDetailModal = ref(false)
 const selectedScheduleDetail = ref(null)
 
+// Essay Correction State (for Schedule Detail Modal)
+const scheduleDetailTab = ref('info') // 'info' | 'essay'
+const essayQuestions = ref([])
+const essayLoading = ref(false)
+const essayDraft = ref({}) // keyed by answer_id: { score_awarded: number|null, teacher_comment: string }
+const essaySaving = ref({}) // keyed by question_id: boolean
+
 // Bulk Selection States & Logic
 const selectedScheduleIds = ref([])
 
@@ -5796,6 +5960,84 @@ const toggleScheduleSort = (key) => {
 const openScheduleDetail = (sch) => {
   selectedScheduleDetail.value = sch
   showScheduleDetailModal.value = true
+  scheduleDetailTab.value = 'info'
+  essayQuestions.value = []
+  essayDraft.value = {}
+  essaySaving.value = {}
+}
+
+const fetchEssayAnswers = async (scheduleId) => {
+  if (essayLoading.value) return
+  essayLoading.value = true
+  try {
+    const res = await api.get(`/api/v1/admin/schedules/${scheduleId}/essay-answers`)
+    essayQuestions.value = res.data.data || []
+    // Initialize draft from existing data
+    const draft = {}
+    for (const q of essayQuestions.value) {
+      for (const a of q.answers || []) {
+        draft[a.answer_id] = {
+          score_awarded: a.score_awarded !== null && a.score_awarded !== undefined ? a.score_awarded : null,
+          teacher_comment: a.teacher_comment || ''
+        }
+      }
+    }
+    essayDraft.value = draft
+  } catch (e) {
+    showToast('Gagal memuat data jawaban essay.', 'error')
+  } finally {
+    essayLoading.value = false
+  }
+}
+
+const switchToEssayTab = () => {
+  scheduleDetailTab.value = 'essay'
+  if (essayQuestions.value.length === 0 && !essayLoading.value && selectedScheduleDetail.value) {
+    fetchEssayAnswers(selectedScheduleDetail.value.id)
+  }
+}
+
+const essayTotalPending = computed(() => {
+  return essayQuestions.value.reduce((sum, q) => sum + (q.total_count - q.graded_count), 0)
+})
+
+const saveEssayQuestion = async (question) => {
+  const qid = question.question_id
+  // Collect answers for this question
+  const payload = (question.answers || []).map(a => {
+    const d = essayDraft.value[a.answer_id] || {}
+    return {
+      answer_id: a.answer_id,
+      score_awarded: d.score_awarded !== null && d.score_awarded !== undefined ? Number(d.score_awarded) : null,
+      teacher_comment: d.teacher_comment || ''
+    }
+  })
+
+  // Validate scores
+  for (const p of payload) {
+    if (p.score_awarded !== null) {
+      if (p.score_awarded < 0) {
+        showToast(`Nilai tidak boleh negatif (Soal No. ${question.question_number}).`, 'error')
+        return
+      }
+      if (p.score_awarded > question.score_weight) {
+        showToast(`Nilai melebihi bobot soal ${question.score_weight} (Soal No. ${question.question_number}).`, 'error')
+        return
+      }
+    }
+  }
+
+  essaySaving.value = { ...essaySaving.value, [qid]: true }
+  try {
+    await api.patch(`/api/v1/admin/schedules/${selectedScheduleDetail.value.id}/essay-answers`, payload)
+    showToast(`Penilaian soal No. ${question.question_number} berhasil disimpan.`, 'success')
+    // Refresh essay data
+    await fetchEssayAnswers(selectedScheduleDetail.value.id)
+  } catch (e) {
+    showToast('Gagal menyimpan penilaian.', 'error')
+  } finally {
+    essaySaving.value = { ...essaySaving.value, [qid]: false }
+  }
 }
 
 const availableScheduleGrades = computed(() => {
