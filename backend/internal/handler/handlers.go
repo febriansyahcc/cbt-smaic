@@ -27,6 +27,7 @@ type Handlers struct {
 	examService    *service.ExamService
 	proctorService *service.ProctorService
 	accessService  *service.AccessService
+	participants   *service.EventParticipantService
 }
 
 func NewHandlers(repo *repository.Database) *Handlers {
@@ -36,6 +37,7 @@ func NewHandlers(repo *repository.Database) *Handlers {
 		examService:    service.NewExamService(repo),
 		proctorService: service.NewProctorService(repo),
 		accessService:  service.NewAccessService(repo),
+		participants:   service.NewEventParticipantService(repo),
 	}
 }
 
@@ -1099,6 +1101,7 @@ func (h *Handlers) HandleDeleteStudent(c *fiber.Ctx) error {
 
 	userID := profile.UserID
 	h.repo.DB.Delete(&profile)
+	h.repo.DB.Where("user_id = ?", userID).Delete(&domain.EventParticipant{})
 	h.repo.DB.Delete(&domain.User{}, "id = ?", userID)
 
 	return c.JSON(fiber.Map{"success": true, "message": "Data siswa berhasil dihapus"})
@@ -1818,11 +1821,60 @@ func (h *Handlers) HandleDeleteEvent(c *fiber.Ctx) error {
 		})
 	}
 
+	h.repo.DB.Where("event_id = ?", eventID).Delete(&domain.EventParticipant{})
 	if err := h.repo.DB.Delete(&domain.ExamEvent{}, "id = ?", eventID).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal menghapus event"})
 	}
 
 	return c.JSON(fiber.Map{"success": true, "message": "Event berhasil dihapus"})
+}
+
+// ---------------- KARTU PESERTA EVENT ----------------
+
+func (h *Handlers) HandleGetEventParticipants(c *fiber.Ctx) error {
+	eventID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "ID tidak valid"})
+	}
+	var classID *uuid.UUID
+	if raw := c.Query("class_id"); raw != "" {
+		if id, err := uuid.Parse(raw); err == nil {
+			classID = &id
+		}
+	}
+	cards, err := h.participants.List(eventID, classID)
+	if errors.Is(err, service.ErrEventNotFound) {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "Event tidak ditemukan"})
+	}
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal memuat data peserta"})
+	}
+	return c.JSON(fiber.Map{"success": true, "data": cards})
+}
+
+type GenerateParticipantsRequest struct {
+	Reset bool `json:"reset"`
+}
+
+func (h *Handlers) HandleGenerateEventParticipants(c *fiber.Ctx) error {
+	eventID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "ID tidak valid"})
+	}
+	var req GenerateParticipantsRequest
+	_ = c.BodyParser(&req)
+	created, err := h.participants.Generate(eventID, req.Reset)
+	if errors.Is(err, service.ErrEventNotFound) {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "Event tidak ditemukan"})
+	}
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal membuat akun peserta"})
+	}
+	msg := fmt.Sprintf("%d akun peserta baru dibuat", created)
+	if created == 0 {
+		msg = "Semua peserta sudah memiliki nomor ujian"
+	}
+	return c.JSON(fiber.Map{"success": true, "created": created, "message": msg})
 }
 
 func (h *Handlers) HandleGetAdminSchedules(c *fiber.Ctx) error {

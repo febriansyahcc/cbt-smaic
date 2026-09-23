@@ -27,16 +27,18 @@ type LoginResponse struct {
 
 func (s *AuthService) Login(username, password, clientIP, userAgent string) (*LoginResponse, error) {
 	var user domain.User
-	if err := s.repo.DB.Where("username = ?", username).First(&user).Error; err != nil {
-		return nil, errors.New("username atau password salah")
+	found := s.repo.DB.Where("username = ?", username).First(&user).Error == nil
+	if !found || bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {
+		// Alternatif: nomor ujian + kata sandi kartu peserta pada event yang sedang aktif.
+		participant, ok := findParticipantLogin(s.repo.DB, username, password)
+		if !ok {
+			return nil, errors.New("username atau password salah")
+		}
+		user = *participant
 	}
 
 	if !user.IsActive {
 		return nil, errors.New("akun dinonaktifkan")
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return nil, errors.New("username atau password salah")
 	}
 
 	// Generate new session ID for single-device lock

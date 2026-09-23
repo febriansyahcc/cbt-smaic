@@ -259,3 +259,15 @@ type ViolationLog struct {
 	Details    string    `gorm:"size:255" json:"details"`
 	OccurredAt time.Time `json:"occurred_at"`
 }
+
+// EventParticipant adalah akun peserta per event yang dicetak pada kartu peserta.
+// Siswa dapat login memakai ExamNumber + Password selama event aktif; login NIS tetap berlaku.
+// Password disimpan apa adanya karena harus bisa dicetak ulang; berlaku hanya selama event aktif.
+type EventParticipant struct {
+	ID         uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	EventID    uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_event_participant_user" json:"event_id"`
+	UserID     uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_event_participant_user;index" json:"user_id"`
+	ExamNumber string    `gorm:"size:50;not null;uniqueIndex" json:"exam_number"`
+	Password   string    `gorm:"size:20;not null" json:"password"`
+	CreatedAt  time.Time `json:"created_at"`
+}
