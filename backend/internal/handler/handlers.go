@@ -2044,10 +2044,6 @@ func (h *Handlers) HandleCreateSchedule(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Mata pelajaran wajib ditentukan untuk jadwal ujian"})
 	}
 
-	token := req.ExamToken
-	if token == "" {
-		token = "CBT2026"
-	}
 	duration := req.DurationMinutes
 	if duration <= 0 {
 		duration = 90
@@ -2076,6 +2072,18 @@ func (h *Handlers) HandleCreateSchedule(c *fiber.Ctx) error {
 
 	st, et := parseScheduleTimes(req.ExamDate, req.StartTime, req.EndTime, duration)
 	now := time.Now()
+
+	// Satu sesi waktu (event + jam mulai) memakai satu token untuk semua kelas.
+	token := strings.ToUpper(strings.TrimSpace(req.ExamToken))
+	if shared, ok := service.SessionToken(h.repo.DB, targetEventID, st, uuid.Nil); ok {
+		token = shared
+	} else if token == "" {
+		generated, err := service.GenerateExamToken()
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal membuat token ujian"})
+		}
+		token = generated
+	}
 
 	sched := domain.ExamSchedule{
 		ID:                 uuid.New(),
@@ -2119,6 +2127,7 @@ func (h *Handlers) HandleUpdateSchedule(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Format data tidak valid"})
 	}
+	oldEventID, oldStart, oldToken := sched.EventID, sched.StartTime, sched.ExamToken
 
 	if req.Title != "" {
 		sched.Title = req.Title
@@ -2144,9 +2153,6 @@ func (h *Handlers) HandleUpdateSchedule(c *fiber.Ctx) error {
 				}
 			}
 		}
-	}
-	if req.ExamToken != "" {
-		sched.ExamToken = req.ExamToken
 	}
 	if req.DurationMinutes > 0 {
 		sched.DurationMinutes = req.DurationMinutes
@@ -2182,13 +2188,56 @@ func (h *Handlers) HandleUpdateSchedule(c *fiber.Ctx) error {
 		sched.EndTime = et
 	}
 
+	// Token dibagi per sesi waktu: token yang diubah diterapkan ke seluruh jadwal sesi itu,
+	// sedangkan jadwal yang pindah ke sesi lain mengikuti token sesi tujuan.
+	newToken := strings.ToUpper(strings.TrimSpace(req.ExamToken))
+	tokenChanged := newToken != "" && newToken != oldToken
+	slotMoved := !sched.StartTime.Equal(oldStart) || !sameEventID(sched.EventID, oldEventID)
+	if tokenChanged {
+		sched.ExamToken = newToken
+	} else if slotMoved {
+		if shared, ok := service.SessionToken(h.repo.DB, sched.EventID, sched.StartTime, sched.ID); ok {
+			sched.ExamToken = shared
+		}
+	}
+
 	if err := h.repo.DB.Save(&sched).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal memperbarui jadwal"})
+	}
+	if tokenChanged {
+		if err := service.ApplySessionToken(h.repo.DB, sched.EventID, sched.StartTime, sched.ExamToken); err != nil {
+			log.Printf("gagal menyamakan token sesi jadwal %s: %v", sched.ID, err)
+		}
 	}
 
 	h.repo.DB.Preload("Event").Preload("Subject").Preload("Bank").Preload("Bank.Subject").Preload("ClassRoom").First(&sched, "id = ?", sched.ID)
 
 	return c.JSON(fiber.Map{"success": true, "data": sched, "message": "Jadwal ujian berhasil diperbarui"})
+}
+
+func sameEventID(a, b *uuid.UUID) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
+}
+
+type RegenerateTokensRequest struct {
+	ScheduleIDs []uuid.UUID `json:"schedule_ids"`
+}
+
+// HandleRegenerateSessionTokens mengacak token baru per sesi waktu untuk jadwal terpilih.
+// Jadwal lain pada sesi yang sama ikut mendapat token baru agar tetap seragam.
+func (h *Handlers) HandleRegenerateSessionTokens(c *fiber.Ctx) error {
+	var req RegenerateTokensRequest
+	if err := c.BodyParser(&req); err != nil || len(req.ScheduleIDs) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Pilih minimal satu jadwal"})
+	}
+	sessions, err := service.RegenerateSessionTokens(h.repo.DB, req.ScheduleIDs)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal mengacak token"})
+	}
+	return c.JSON(fiber.Map{"success": true, "sessions": sessions, "message": fmt.Sprintf("Token baru dibuat untuk %d sesi waktu", sessions)})
 }
 
 func (h *Handlers) HandleLinkScheduleBank(c *fiber.Ctx) error {
