@@ -18,3 +18,7 @@ seed-output/
 .DS_Store
 Thumbs.db
 *.log
+
+# Berkas kunci skrip auto-update di server
+.auto-update.lock
+.update-paused

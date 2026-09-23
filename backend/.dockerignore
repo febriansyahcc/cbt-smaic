@@ -1,0 +1,21 @@
+# Jangan ikut sertakan rahasia, data lokal, atau hasil build ke dalam image
+.env
+.env.*
+*.db
+*.db-*
+*.sqlite
+*.log
+*.exe
+cbt-backend
+seedstaff
+uploads/
+seed-output/
+_backup_pbac/
+.git
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Dockerfile
+.dockerignore

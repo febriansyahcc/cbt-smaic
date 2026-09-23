@@ -1,0 +1,14 @@
+# Dependensi di-install ulang dengan npm ci, hasil build dibuat di dalam image
+node_modules/
+dist/
+.env
+.env.*
+*.log
+.git
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Dockerfile
+.dockerignore

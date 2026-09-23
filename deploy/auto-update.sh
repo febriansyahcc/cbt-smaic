@@ -10,9 +10,19 @@
 #       touch /opt/cbt/deploy/.update-paused   (hapus file itu untuk mengaktifkan lagi)
 #   - Pengecekan versi memakai request HEAD ke registry, jadi tidak menghabiskan kuota pull
 #     Docker Hub. Pull hanya dilakukan kalau digest di Docker Hub berbeda dengan image lokal.
-#   - FORCE=1 melewati cek ujian (untuk update manual di luar jam ujian).
+#   - Setiap image baru WAJIB lolos verifikasi tanda tangan cosign: image harus dibuat oleh
+#     workflow .github/workflows/ci-cd.yml di branch main repo GitHub resmi. Image yang di-push
+#     dengan cara lain (misalnya token Docker Hub bocor) ditolak dan tidak dijalankan.
+#     Butuh binary cosign di server (lihat docs/PANDUAN_OPERASIONAL.md bagian 6).
+#   - Image di-pull berdasarkan digest yang sudah diverifikasi, bukan berdasarkan tag, supaya
+#     tidak tertukar kalau tag latest berubah di antara verifikasi dan pull.
+#   - FORCE=1 melewati cek ujian (untuk update manual di luar jam ujian). Verifikasi tanda
+#     tangan tetap berlaku.
 
 set -euo pipefail
+
+# PATH bawaan cron hanya /usr/bin:/bin, sedangkan cosign biasanya ada di /usr/local/bin
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
 
 cd "$(dirname "$(readlink -f "$0")")"
 
@@ -20,11 +30,14 @@ REGISTRY_USER="mochamaddwifebriansyah13"
 TAG="${TAG:-latest}"
 SERVICES=(backend frontend)
 DB_CONTAINER="cbt-postgres"
+COSIGN="${COSIGN:-cosign}"
+SIGNER_IDENTITY="https://github.com/febriansyahcc/cbt-smaic/.github/workflows/ci-cd.yml@refs/heads/main"
+SIGNER_ISSUER="https://token.actions.githubusercontent.com"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
 # Cegah dua proses update berjalan bersamaan
-exec 9>/tmp/cbt-auto-update.lock
+exec 9>.auto-update.lock
 if ! flock -n 9; then
   log "Proses update lain masih berjalan, lewati."
   exit 0
@@ -64,7 +77,13 @@ local_digest() {
     | sed -n "s|^$1@||p" | head -n1
 }
 
+if ! command -v "$COSIGN" >/dev/null 2>&1; then
+  log "ERROR: cosign tidak ditemukan. Update dibatalkan karena image tidak bisa diverifikasi."
+  exit 1
+fi
+
 outdated=()
+declare -A new_digest=()
 for svc in "${SERVICES[@]}"; do
   repo="${REGISTRY_USER}/cbt-${svc}"
   remote=$(remote_digest "$repo" || true)
@@ -74,6 +93,7 @@ for svc in "${SERVICES[@]}"; do
   fi
   if [ "$remote" != "$(local_digest "$repo")" ]; then
     outdated+=("$svc")
+    new_digest[$svc]="$remote"
   fi
 done
 
@@ -102,11 +122,34 @@ if [ "${FORCE:-0}" != "1" ]; then
   fi
 fi
 
-log "Pull image: ${outdated[*]}"
-docker compose pull "${outdated[@]}"
+verify_err=$(mktemp)
+trap 'rm -f "$verify_err"' EXIT
+
+verified=()
+for svc in "${outdated[@]}"; do
+  ref="${REGISTRY_USER}/cbt-${svc}@${new_digest[$svc]}"
+  if ! "$COSIGN" verify \
+      --certificate-identity "$SIGNER_IDENTITY" \
+      --certificate-oidc-issuer "$SIGNER_ISSUER" \
+      "$ref" >/dev/null 2>"$verify_err"; then
+    log "PERINGATAN: tanda tangan ${ref} tidak valid atau belum ada, image TIDAK dipakai."
+    sed 's/^/    /' "$verify_err" | tail -n 5
+    continue
+  fi
+  log "Tanda tangan valid: ${ref}"
+  docker pull -q "$ref" >/dev/null
+  docker tag "$ref" "${REGISTRY_USER}/cbt-${svc}:${TAG}"
+  verified+=("$svc")
+done
+
+if [ ${#verified[@]} -eq 0 ]; then
+  log "Tidak ada image terverifikasi untuk dipasang. Dicoba lagi pada jadwal berikutnya."
+  exit 0
+fi
+outdated=("${verified[@]}")
 
 log "Menjalankan ulang container..."
-docker compose up -d "${outdated[@]}"
+docker compose up -d --no-deps "${outdated[@]}"
 
 docker image prune -f >/dev/null
 log "Update selesai."

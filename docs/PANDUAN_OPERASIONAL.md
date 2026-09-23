@@ -119,9 +119,23 @@ Secret yang wajib diisi di GitHub (**Settings → Secrets and variables → Acti
 | `DOCKERHUB_USERNAME` | Username Docker Hub |
 | `DOCKERHUB_TOKEN` | Personal access token Docker Hub dengan izin *Read & Write* |
 
+### Keamanan image (tanda tangan cosign)
+
+Setiap image yang dibuat workflow ditandatangani dengan [cosign](https://github.com/sigstore/cosign) secara *keyless*: tanda tangan terikat pada identitas workflow `ci-cd.yml` di branch `main` repo `febriansyahcc/cbt-smaic`, tanpa kunci privat yang perlu disimpan. Skrip auto-update hanya memasang image yang lolos verifikasi ini. Kalau token Docker Hub bocor dan ada orang yang mem-push image lain, server menolaknya dan menulis `PERINGATAN: tanda tangan ... tidak valid` di log.
+
+Pasang cosign di server (sekali saja):
+
+```bash
+curl -fsSLO https://github.com/sigstore/cosign/releases/download/v3.1.3/cosign-linux-amd64
+sudo install -m 755 cosign-linux-amd64 /usr/local/bin/cosign
+cosign version
+```
+
+Server perlu akses HTTPS keluar ke `registry-1.docker.io`, `auth.docker.io`, `tuf-repo-cdn.sigstore.dev`, dan `rekor.sigstore.dev`. Tanpa akses ke Sigstore, verifikasi gagal dan update tidak dipasang (aman, tetapi server tidak ter-update).
+
 ### Update otomatis di server
 
-Skrip `deploy/auto-update.sh` memeriksa Docker Hub, lalu pull dan restart container hanya jika image berubah. Update **ditunda** selama ada jadwal ujian aktif atau sesi siswa yang belum selesai, supaya ujian tidak terputus.
+Skrip `deploy/auto-update.sh` memeriksa Docker Hub, memverifikasi tanda tangan image baru, lalu pull (berdasarkan digest yang sudah diverifikasi) dan restart container hanya jika image berubah. Update **ditunda** selama ada jadwal ujian aktif atau sesi siswa yang belum selesai, supaya ujian tidak terputus.
 
 Pasang di cron server (contoh folder `/opt/cbt/deploy`, cek setiap 10 menit):
 
