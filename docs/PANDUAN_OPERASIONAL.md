@@ -101,3 +101,44 @@ cd d:\cbt\deploy
 docker compose up -d --build
 ```
 *Aplikasi siap diakses di port 80.*
+---
+
+## 6. CI/CD & Update Otomatis Server
+
+### Alur rilis
+
+1. Push ke branch `main` menjalankan workflow `.github/workflows/ci-cd.yml`: `go vet`, `go test`, build backend, dan build frontend.
+2. Jika semua lulus, image `mochamaddwifebriansyah13/cbt-backend` dan `cbt-frontend` di-push ke Docker Hub dengan tag `latest` dan `sha-<commit>`.
+3. Push tag `v1.2.3` menghasilkan tag image `1.2.3` dan `1.2` untuk keperluan rollback.
+4. Pull request ke `main` hanya menjalankan tes, tanpa push image.
+
+Secret yang wajib diisi di GitHub (**Settings → Secrets and variables → Actions**):
+
+| Nama | Isi |
+|------|-----|
+| `DOCKERHUB_USERNAME` | Username Docker Hub |
+| `DOCKERHUB_TOKEN` | Personal access token Docker Hub dengan izin *Read & Write* |
+
+### Update otomatis di server
+
+Skrip `deploy/auto-update.sh` memeriksa Docker Hub, lalu pull dan restart container hanya jika image berubah. Update **ditunda** selama ada jadwal ujian aktif atau sesi siswa yang belum selesai, supaya ujian tidak terputus.
+
+Pasang di cron server (contoh folder `/opt/cbt/deploy`, cek setiap 10 menit):
+
+```bash
+chmod +x /opt/cbt/deploy/auto-update.sh
+sudo crontab -e
+# tambahkan baris:
+*/10 * * * * /opt/cbt/deploy/auto-update.sh >> /var/log/cbt-auto-update.log 2>&1
+```
+
+Perintah yang berguna:
+
+```bash
+tail -f /var/log/cbt-auto-update.log            # lihat riwayat update
+touch /opt/cbt/deploy/.update-paused            # jeda update (mis. minggu ujian)
+rm /opt/cbt/deploy/.update-paused               # aktifkan lagi
+FORCE=1 /opt/cbt/deploy/auto-update.sh          # update sekarang tanpa cek ujian
+```
+
+Rollback ke versi tertentu: ubah `image:` di `deploy/docker-compose.yml` ke tag versi (mis. `cbt-backend:1.2.3`), buat `.update-paused`, lalu `docker compose up -d`.
