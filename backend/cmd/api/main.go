@@ -218,6 +218,8 @@ func main() {
 	admin.Put("/events/:id", eventsMgr, handlers.HandleUpdateEvent)
 	admin.Post("/events/:id/toggle-active", eventsMgr, handlers.HandleToggleEventActive)
 	admin.Delete("/events/:id", eventsMgr, handlers.HandleDeleteEvent)
+	admin.Get("/events/:id/participants", eventsMgr, handlers.HandleGetEventParticipants)
+	admin.Post("/events/:id/participants/generate", eventsMgr, handlers.HandleGenerateEventParticipants)
 
 	// User Management Routes
 	admin.Get("/users", usersMgr, handlers.HandleGetUsers)

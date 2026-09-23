@@ -1423,6 +1423,16 @@
                       </svg>
                       <span>{{ ev.is_active ? 'Arsipkan Event' : 'Aktifkan Event' }}</span>
                     </button>
+                    <button
+                      type="button"
+                      @click.stop="openCardPrint(ev); activeEventMenuId = null"
+                      class="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-2 transition cursor-pointer"
+                    >
+                      <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                      </svg>
+                      <span>Cetak Kartu Peserta</span>
+                    </button>
                     <div class="my-1 border-t border-slate-100"></div>
                     <button
                       type="button"
@@ -4712,6 +4722,7 @@
 
     <!-- MODAL: CETAK DAFTAR HADIR & BERITA ACARA DARI DATA PENGAWASAN LIVE -->
     <ProctorPrintModal v-model="showProctorPrint" :proctor-data="proctorData" />
+    <EventCardPrintModal v-model="showCardPrint" :event="cardPrintEvent" />
 
     <!-- MODAL: CETAK DOKUMEN RESMI UJIAN (DAFTAR HADIR & BERITA ACARA) -->
     <div v-if="showPrintModal && printSchedule" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-xs overflow-y-auto">
@@ -5860,6 +5871,7 @@ import LiveProctorControl from '@/components/proctor/LiveProctorControl.vue'
 import ProctorPrintModal from '@/components/proctor/ProctorPrintModal.vue'
 import ScheduleProctorModal from '@/components/admin/ScheduleProctorModal.vue'
 import StaffAccessEditor from '../../components/admin/StaffAccessEditor.vue'
+import EventCardPrintModal from '../../components/admin/EventCardPrintModal.vue'
 import { landingTab } from '../../utils/access'
 import {
   applyImplications,
@@ -6591,6 +6603,12 @@ const filterClassSubjectClass = ref('')
 const eventSearchQuery = ref('')
 const eventStatusFilter = ref('all')
 const activeEventMenuId = ref(null)
+const showCardPrint = ref(false)
+const cardPrintEvent = ref(null)
+const openCardPrint = (ev) => {
+  cardPrintEvent.value = ev
+  showCardPrint.value = true
+}
 
 const toggleEventMenu = (id) => {
   activeEventMenuId.value = activeEventMenuId.value === id ? null : id

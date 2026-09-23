@@ -28,14 +28,14 @@
         <form @submit.prevent="handleLogin" class="space-y-4">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">
-              Nomor Induk Siswa (NIS) / Username
+              NIS / No. Ujian / Username
             </label>
             <input
               v-model="username"
               type="text"
               required
               autocomplete="username"
-              placeholder="NIS / Username"
+              placeholder="NIS / No. Ujian / Username"
               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition"
             />
           </div>
@@ -79,17 +79,20 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { homePathFor } from '../utils/access'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const username = ref('')
 const password = ref('')
 
 onMounted(() => {
+  // QR kartu peserta membuka /login?u=<No. Ujian> agar username langsung terisi.
+  if (typeof route.query.u === 'string') username.value = route.query.u.trim()
   const loginErr = sessionStorage.getItem('cbt_login_error')
   if (loginErr) {
     authStore.error = loginErr

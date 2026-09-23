@@ -68,6 +68,7 @@ func InitDB() (*Database, error) {
 		&domain.StudentAnswer{},
 		&domain.ViolationLog{},
 		&domain.ScheduleProctor{},
+		&domain.EventParticipant{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("auto-migration failed: %w", err)
