@@ -604,9 +604,9 @@ func (h *Handlers) HandleImportQuestionsExcel(c *fiber.Ctx) error {
 	h.repo.DB.Model(&domain.QuestionBank{}).Where("id = ?", bankID).Update("total_questions", len(questions))
 
 	return c.JSON(fiber.Map{
-		"success":         true,
-		"imported_count":  len(questions),
-		"message":         fmt.Sprintf("Berhasil mengimpor %d butir soal ke dalam bank soal.", len(questions)),
+		"success":        true,
+		"imported_count": len(questions),
+		"message":        fmt.Sprintf("Berhasil mengimpor %d butir soal ke dalam bank soal.", len(questions)),
 	})
 }
 
@@ -628,7 +628,7 @@ func (h *Handlers) HandleGetReadinessMatrix(c *fiber.Ctx) error {
 
 	if !hasReadAll {
 		// 1. Bank soal: hanya yang dibuat pengguna ini (mengampu mapel tidak membuka bank orang lain)
-		h.repo.DB.Preload("Subject").Preload("CreatedBy").
+		h.repo.DB.Preload("Subject").Preload("CreatedBy").Preload("Classes").
 			Where("created_by_id = ?", user.ID).
 			Order("created_at DESC").
 			Find(&banks)
@@ -654,7 +654,7 @@ func (h *Handlers) HandleGetReadinessMatrix(c *fiber.Ctx) error {
 		}
 	} else {
 		// Pengguna memiliki hak akses questions:read_all atau RoleAdmin: Ambil seluruh data secara holistik
-		bankQuery := h.repo.DB.Preload("Subject").Preload("CreatedBy").Order("created_at DESC")
+		bankQuery := h.repo.DB.Preload("Subject").Preload("CreatedBy").Preload("Classes").Order("created_at DESC")
 		schedQuery := h.repo.DB.Preload("Event").Preload("Subject").Preload("Bank").Preload("Bank.Subject").Preload("Bank.CreatedBy").Preload("ClassRoom").
 			Order("start_time ASC, created_at DESC")
 
@@ -2278,8 +2278,10 @@ func (h *Handlers) HandleToggleBankLock(c *fiber.Ctx) error {
 }
 
 type CreateQuestionBankRequest struct {
-	SubjectID uuid.UUID `json:"subject_id"`
-	Title     string    `json:"title"`
+	SubjectID uuid.UUID    `json:"subject_id"`
+	Grade     *string      `json:"grade"`
+	ClassIDs  *[]uuid.UUID `json:"class_ids"`
+	Title     string       `json:"title"`
 }
 
 func (h *Handlers) HandleCreateQuestionBank(c *fiber.Ctx) error {
@@ -2292,9 +2294,15 @@ func (h *Handlers) HandleCreateQuestionBank(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Mata pelajaran dan judul bank soal wajib diisi"})
 	}
 
+	grade := ""
+	if req.Grade != nil {
+		grade = strings.TrimSpace(*req.Grade)
+	}
+
 	bank := domain.QuestionBank{
 		ID:             uuid.New(),
 		SubjectID:      req.SubjectID,
+		Grade:          grade,
 		Title:          strings.TrimSpace(req.Title),
 		CreatedByID:    user.ID,
 		TotalQuestions: 0,
@@ -2302,18 +2310,32 @@ func (h *Handlers) HandleCreateQuestionBank(c *fiber.Ctx) error {
 		CreatedAt:      time.Now(),
 	}
 
+	if req.ClassIDs != nil {
+		classes, err := h.loadBankClasses(*req.ClassIDs)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+		}
+		bank.Classes = classes
+		if len(classes) > 0 {
+			// Cakupan kelas khusus menggantikan cakupan per angkatan.
+			bank.Grade = ""
+		}
+	}
+
 	if err := h.repo.DB.Create(&bank).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal membuat bank soal: " + err.Error()})
 	}
 
-	h.repo.DB.Preload("Subject").Preload("CreatedBy").First(&bank, "id = ?", bank.ID)
+	h.repo.DB.Preload("Subject").Preload("CreatedBy").Preload("Classes").First(&bank, "id = ?", bank.ID)
 
 	return c.JSON(fiber.Map{"success": true, "data": bank, "message": "Bank soal baru berhasil dibuat"})
 }
 
 type UpdateQuestionBankRequest struct {
-	SubjectID uuid.UUID `json:"subject_id"`
-	Title     string    `json:"title"`
+	SubjectID uuid.UUID    `json:"subject_id"`
+	Grade     *string      `json:"grade"`
+	ClassIDs  *[]uuid.UUID `json:"class_ids"`
+	Title     string       `json:"title"`
 }
 
 func (h *Handlers) HandleUpdateQuestionBank(c *fiber.Ctx) error {
@@ -2338,17 +2360,63 @@ func (h *Handlers) HandleUpdateQuestionBank(c *fiber.Ctx) error {
 	if req.SubjectID != uuid.Nil {
 		bank.SubjectID = req.SubjectID
 	}
+	if req.Grade != nil {
+		bank.Grade = strings.TrimSpace(*req.Grade)
+	}
 	if strings.TrimSpace(req.Title) != "" {
 		bank.Title = strings.TrimSpace(req.Title)
 	}
 
-	if err := h.repo.DB.Save(&bank).Error; err != nil {
+	var newClasses []domain.ClassRoom
+	if req.ClassIDs != nil {
+		newClasses, err = h.loadBankClasses(*req.ClassIDs)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+		}
+		if len(newClasses) > 0 {
+			bank.Grade = ""
+		}
+	}
+
+	err = h.repo.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Omit("Classes").Save(&bank).Error; err != nil {
+			return err
+		}
+		if req.ClassIDs != nil {
+			return tx.Model(&bank).Association("Classes").Replace(newClasses)
+		}
+		return nil
+	})
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal memperbarui bank soal: " + err.Error()})
 	}
 
-	h.repo.DB.Preload("Subject").Preload("CreatedBy").First(&bank, "id = ?", bank.ID)
+	h.repo.DB.Preload("Subject").Preload("CreatedBy").Preload("Classes").First(&bank, "id = ?", bank.ID)
 
 	return c.JSON(fiber.Map{"success": true, "data": bank, "message": "Bank soal berhasil diperbarui"})
+}
+
+// loadBankClasses memvalidasi daftar kelas cakupan bank soal; ID duplikat diabaikan.
+func (h *Handlers) loadBankClasses(ids []uuid.UUID) ([]domain.ClassRoom, error) {
+	unique := make([]uuid.UUID, 0, len(ids))
+	seen := make(map[uuid.UUID]bool, len(ids))
+	for _, id := range ids {
+		if id != uuid.Nil && !seen[id] {
+			seen[id] = true
+			unique = append(unique, id)
+		}
+	}
+	classes := make([]domain.ClassRoom, 0, len(unique))
+	if len(unique) == 0 {
+		return classes, nil
+	}
+	if err := h.repo.DB.Where("id IN ?", unique).Find(&classes).Error; err != nil {
+		return nil, fmt.Errorf("Gagal memuat data kelas")
+	}
+	if len(classes) != len(unique) {
+		return nil, fmt.Errorf("Sebagian kelas yang dipilih tidak ditemukan")
+	}
+	return classes, nil
 }
 
 func (h *Handlers) HandleDeleteQuestionBank(c *fiber.Ctx) error {
@@ -2369,8 +2437,9 @@ func (h *Handlers) HandleDeleteQuestionBank(c *fiber.Ctx) error {
 		})
 	}
 
-	// Delete questions
+	// Delete questions & cakupan kelas
 	h.repo.DB.Delete(&domain.Question{}, "bank_id = ?", bankID)
+	h.repo.DB.Model(&domain.QuestionBank{ID: bankID}).Association("Classes").Clear()
 	// Delete bank
 	if err := h.repo.DB.Delete(&domain.QuestionBank{}, "id = ?", bankID).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal menghapus bank soal"})
@@ -3202,13 +3271,13 @@ type EssayAnswerItem struct {
 }
 
 type EssayQuestionResult struct {
-	QuestionID     uuid.UUID        `json:"question_id"`
-	QuestionNumber int              `json:"question_number"`
-	QuestionType   string           `json:"question_type"`
-	ContentHTML    string           `json:"content_html"`
-	ScoreWeight    float64          `json:"score_weight"`
-	GradedCount    int              `json:"graded_count"`
-	TotalCount     int              `json:"total_count"`
+	QuestionID     uuid.UUID         `json:"question_id"`
+	QuestionNumber int               `json:"question_number"`
+	QuestionType   string            `json:"question_type"`
+	ContentHTML    string            `json:"content_html"`
+	ScoreWeight    float64           `json:"score_weight"`
+	GradedCount    int               `json:"graded_count"`
+	TotalCount     int               `json:"total_count"`
 	Answers        []EssayAnswerItem `json:"answers"`
 }
 

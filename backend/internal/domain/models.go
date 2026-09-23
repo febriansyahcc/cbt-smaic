@@ -9,9 +9,9 @@ import (
 type Role string
 
 const (
-	RoleAdmin   Role = "ADMIN"
-	RoleGuru    Role = "GURU"
-	RoleSiswa   Role = "SISWA"
+	RoleAdmin Role = "ADMIN"
+	RoleGuru  Role = "GURU"
+	RoleSiswa Role = "SISWA"
 )
 
 type Permission string
@@ -111,15 +111,15 @@ type ClassRoom struct {
 }
 
 type StudentProfile struct {
-	ID          uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
-	UserID      uuid.UUID  `gorm:"type:uuid;uniqueIndex;not null" json:"user_id"`
-	User        User       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"user,omitempty"`
-	NISN        string     `gorm:"size:20;uniqueIndex" json:"nisn"`
-	NIS         string     `gorm:"size:20;uniqueIndex;not null" json:"nis"`
-	ClassRoomID uuid.UUID  `gorm:"type:uuid;index;not null" json:"class_id"`
-	ClassRoom   ClassRoom  `gorm:"foreignKey:ClassRoomID" json:"class_room,omitempty"`
-	Gender      string     `gorm:"size:10" json:"gender"`
-	CreatedAt   time.Time  `json:"created_at"`
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	UserID      uuid.UUID `gorm:"type:uuid;uniqueIndex;not null" json:"user_id"`
+	User        User      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"user,omitempty"`
+	NISN        string    `gorm:"size:20;uniqueIndex" json:"nisn"`
+	NIS         string    `gorm:"size:20;uniqueIndex;not null" json:"nis"`
+	ClassRoomID uuid.UUID `gorm:"type:uuid;index;not null" json:"class_id"`
+	ClassRoom   ClassRoom `gorm:"foreignKey:ClassRoomID" json:"class_room,omitempty"`
+	Gender      string    `gorm:"size:10" json:"gender"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type Subject struct {
@@ -145,8 +145,8 @@ type QuestionType string
 
 const (
 	TypeMultipleChoice QuestionType = "MULTIPLE_CHOICE"
-	TypeShortAnswer     QuestionType = "SHORT_ANSWER"
-	TypeEssay           QuestionType = "ESSAY"
+	TypeShortAnswer    QuestionType = "SHORT_ANSWER"
+	TypeEssay          QuestionType = "ESSAY"
 )
 
 type OptionItem struct {
@@ -156,16 +156,18 @@ type OptionItem struct {
 }
 
 type QuestionBank struct {
-	ID             uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
-	Title          string     `gorm:"size:255;not null" json:"title"`
-	SubjectID      uuid.UUID  `gorm:"type:uuid;index;not null" json:"subject_id"`
-	Subject        Subject    `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
-	CreatedByID    uuid.UUID  `gorm:"type:uuid;not null" json:"created_by_id"`
-	CreatedBy      User       `gorm:"foreignKey:CreatedByID" json:"created_by,omitempty"`
-	TotalQuestions int        `gorm:"default:0" json:"total_questions"`
-	IsLocked       bool       `gorm:"default:false" json:"is_locked"`
-	CreatedAt      time.Time  `json:"created_at"`
-	Questions      []Question `gorm:"foreignKey:BankID;constraint:OnDelete:CASCADE" json:"questions,omitempty"`
+	ID             uuid.UUID   `gorm:"type:uuid;primaryKey" json:"id"`
+	Title          string      `gorm:"size:255;not null" json:"title"`
+	SubjectID      uuid.UUID   `gorm:"type:uuid;index;not null" json:"subject_id"`
+	Subject        Subject     `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
+	Grade          string      `gorm:"size:20;not null;default:''" json:"grade"`                                   // Tingkat kelas (X/XI/XII); kosong = bank lama tanpa tingkat
+	Classes        []ClassRoom `gorm:"many2many:question_bank_classes;constraint:OnDelete:CASCADE" json:"classes"` // Cakupan kelas khusus; kosong = ikut Grade
+	CreatedByID    uuid.UUID   `gorm:"type:uuid;not null" json:"created_by_id"`
+	CreatedBy      User        `gorm:"foreignKey:CreatedByID" json:"created_by,omitempty"`
+	TotalQuestions int         `gorm:"default:0" json:"total_questions"`
+	IsLocked       bool        `gorm:"default:false" json:"is_locked"`
+	CreatedAt      time.Time   `json:"created_at"`
+	Questions      []Question  `gorm:"foreignKey:BankID;constraint:OnDelete:CASCADE" json:"questions,omitempty"`
 }
 
 type Question struct {

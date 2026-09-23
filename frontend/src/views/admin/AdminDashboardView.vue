@@ -3227,7 +3227,7 @@
                       <div class="flex items-center gap-2 flex-wrap">
                         <span class="font-bold text-slate-900 text-xs">{{ b.title }}</span>
                         <span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-semibold rounded-md border border-indigo-100">
-                          {{ b.subject?.name || '-' }}
+                          {{ b.subject?.name || '-' }}{{ bankScopeLabel(b) ? ` · ${bankScopeLabel(b)}` : '' }}
                         </span>
                       </div>
                       <div class="text-[11px] text-slate-400 mt-0.5 font-mono">
@@ -5159,9 +5159,26 @@
 
           <form @submit.prevent="submitCreateBank" class="space-y-4 text-xs">
             <div>
-              <label class="block font-bold text-slate-700 mb-1">Pilih Mata Pelajaran:</label>
+              <label class="block font-bold text-slate-700 mb-1">Cakupan Bank Soal:</label>
+              <div class="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl">
+                <button
+                  v-for="opt in bankScopeOptions"
+                  :key="opt.value"
+                  type="button"
+                  @click="setBankScope(opt.value)"
+                  class="py-2 rounded-lg font-bold transition active:scale-95 cursor-pointer"
+                  :class="newBankForm.scope === opt.value ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Mode per angkatan (default) -->
+            <div v-if="newBankForm.scope === 'grade'">
+              <label class="block font-bold text-slate-700 mb-1">Pilih Mata Pelajaran &amp; Tingkat:</label>
               <select
-                v-model="newBankForm.subject_id"
+                v-model="newBankOptionKey"
                 @change="onBankSubjectChange"
                 required
                 :disabled="availableBankSubjects.length === 0 && !isEditBank"
@@ -5170,13 +5187,13 @@
                 <option value="" disabled>
                   {{ (availableBankSubjects.length === 0 && !isEditBank) ? '-- Semua Mata Pelajaran Sudah Memiliki Bank Soal --' : '-- Pilih Mata Pelajaran --' }}
                 </option>
-                <option v-for="s in availableBankSubjects" :key="s.id" :value="s.id">
-                  {{ s.name }} ({{ s.code }})
+                <option v-for="s in availableBankSubjects" :key="s.key" :value="s.key">
+                  {{ s.name }}{{ s.grade ? ` — Kelas ${s.grade}` : '' }} ({{ s.code }})
                 </option>
               </select>
               <p v-if="availableBankSubjects.length > 0" class="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0"></span>
-                <span>Hanya menampilkan mata pelajaran jadwal yang belum dibuatkan bank soal.</span>
+                <span>Satu naskah untuk seluruh kelas di angkatan tersebut.</span>
               </p>
               <p v-else-if="!isEditBank" class="text-[11px] text-emerald-600 font-semibold mt-1.5 flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
@@ -5184,13 +5201,51 @@
               </p>
             </div>
 
+            <!-- Mode kelas tertentu -->
+            <template v-else>
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">Pilih Mata Pelajaran:</label>
+                <select
+                  v-model="newBankForm.subject_id"
+                  @change="onBankCustomSubjectChange"
+                  required
+                  class="w-full px-3 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-xs cursor-pointer"
+                >
+                  <option value="" disabled>-- Pilih Mata Pelajaran --</option>
+                  <option v-for="s in bankCustomSubjects" :key="s.id" :value="s.id">{{ s.name }} ({{ s.code }})</option>
+                </select>
+              </div>
+              <div v-if="newBankForm.subject_id">
+                <label class="block font-bold text-slate-700 mb-1">Pilih Kelas:</label>
+                <div v-if="bankCustomClassOptions.length > 0" class="flex flex-wrap gap-1.5">
+                  <button
+                    v-for="c in bankCustomClassOptions"
+                    :key="c.id"
+                    type="button"
+                    :disabled="c.covered"
+                    @click="toggleBankClass(c.id)"
+                    :title="c.covered ? 'Kelas ini sudah memiliki bank soal untuk mapel ini' : ''"
+                    class="px-3 py-1.5 rounded-lg border font-bold transition active:scale-95 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:line-through"
+                    :class="newBankForm.class_ids.includes(c.id) ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-300 text-slate-700 hover:border-indigo-400'"
+                  >
+                    {{ c.name }}
+                  </button>
+                </div>
+                <p v-else class="text-[11px] text-slate-500">Belum ada kelas untuk mapel ini.</p>
+                <p class="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0"></span>
+                  <span>Boleh lintas angkatan. Kelas yang dicoret sudah punya bank soal mapel ini.</span>
+                </p>
+              </div>
+            </template>
+
             <div>
               <label class="block font-bold text-slate-700 mb-1">Judul / Nama Paket Bank Soal:</label>
               <input
                 v-model="newBankForm.title"
                 type="text"
                 required
-                :disabled="availableBankSubjects.length === 0 && !isEditBank"
+                :disabled="bankFormLocked"
                 placeholder="Contoh: ASAT Matematika Wajib Kelas XII MIPA"
                 class="w-full px-3 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-indigo-600 text-xs disabled:bg-slate-100 disabled:text-slate-400"
               />
@@ -5207,7 +5262,7 @@
               </button>
               <button
                 type="submit"
-                :disabled="isCreatingBank || (availableBankSubjects.length === 0 && !isEditBank)"
+                :disabled="isCreatingBank || bankFormLocked"
                 class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1 cursor-pointer"
               >
                 <svg v-if="isCreatingBank" class="animate-spin w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24">
@@ -6668,7 +6723,14 @@ const availableBanksForSelectedSchedule = computed(() => {
   if (!selectedScheduleForLink.value) return allBanks
   const targetSubId = selectedScheduleForLink.value.subject_id || selectedScheduleForLink.value.bank?.subject_id
   if (!targetSubId) return allBanks
-  const matching = allBanks.filter(b => b.subject_id === targetSubId)
+  const targetGrade = scheduleGradeOf(selectedScheduleForLink.value)
+  const targetClassId = scheduleClassIdOf(selectedScheduleForLink.value)
+  // Bank tanpa cakupan (data lama) tetap ditampilkan agar bisa ditautkan.
+  const matching = allBanks.filter(b => {
+    if (b.subject_id !== targetSubId) return false
+    if (b.classes?.length) return b.classes.some(c => c.id === targetClassId)
+    return !b.grade || !targetGrade || b.grade === targetGrade
+  })
   return matching.length > 0 ? matching : allBanks
 })
 
@@ -7891,66 +7953,174 @@ const editingBankId = ref(null)
 const questionBankSearchQuery = ref('')
 const questionBankStatusFilter = ref('all') // 'all', 'locked', 'draft'
 const newBankForm = ref({
+  scope: 'grade', // 'grade' = per angkatan (default), 'classes' = kelas tertentu
   subject_id: '',
+  grade: '',
+  class_ids: [],
   title: ''
+})
+
+const bankScopeOptions = [
+  { value: 'grade', label: 'Per Angkatan' },
+  { value: 'classes', label: 'Pilih Kelas' }
+]
+
+const bankGradeOrder = { X: 1, XI: 2, XII: 3 }
+
+// Kunci opsi dropdown = mapel + tingkat, karena Informatika XI dan XII butuh naskah berbeda.
+const bankOptionKey = (subjectId, grade) => `${subjectId}|${grade || ''}`
+
+const newBankOptionKey = computed({
+  get: () => newBankForm.value.subject_id ? bankOptionKey(newBankForm.value.subject_id, newBankForm.value.grade) : '',
+  set: (key) => {
+    const [subjectId, grade = ''] = (key || '').split('|')
+    newBankForm.value.subject_id = subjectId || ''
+    newBankForm.value.grade = grade
+  }
+})
+
+const scheduleClassIdOf = (s) => s.class_room?.id || s.class_room_id || s.class_id
+const scheduleGradeOf = (s) =>
+  s.class_room?.grade || classes.value.find(c => c.id === scheduleClassIdOf(s))?.grade || ''
+
+const scheduleSubjectOf = (s) => {
+  const subId = s.subject_id || s.subject?.id || s.bank?.subject_id || s.bank?.subject?.id
+  if (subId) return s.subject || s.bank?.subject || subjects.value.find(sub => sub.id === subId) || null
+  if (s.title) return subjects.value.find(sub => s.title.toLowerCase().includes(sub.name.toLowerCase())) || null
+  return null
+}
+
+const bankScopeLabel = (b) => {
+  if (b.classes?.length) return b.classes.map(c => c.name).sort((x, y) => x.localeCompare(y, undefined, { numeric: true })).join(', ')
+  return b.grade ? `Kelas ${b.grade}` : ''
+}
+
+// Kelas yang sudah tercakup bank soal lain, per mapel: subject_id -> Set(class_id)
+const bankCoveredClassIds = computed(() => {
+  const scheds = currentEventSchedules.value || []
+  const covered = new Map()
+  ;(readinessData.value.question_banks || [])
+    .filter(b => isEditBank.value ? b.id !== editingBankId.value : true)
+    .forEach(b => {
+      const subId = b.subject_id || b.subject?.id
+      if (!subId) return
+      if (!covered.has(subId)) covered.set(subId, new Set())
+      const set = covered.get(subId)
+      if (b.classes?.length) {
+        b.classes.forEach(c => set.add(c.id))
+      } else if (b.grade) {
+        classes.value.filter(c => c.grade === b.grade).forEach(c => set.add(c.id))
+      } else {
+        // Bank lama tanpa cakupan: anggap mencakup kelas jadwal yang sudah ditautkan kepadanya.
+        scheds.filter(s => s.bank_id === b.id).forEach(s => set.add(scheduleClassIdOf(s)))
+      }
+    })
+  return covered
 })
 
 const availableBankSubjects = computed(() => {
   const scheds = currentEventSchedules.value || []
-  const existingBanks = readinessData.value.question_banks || []
-  const existingBankSubjectIds = new Set(
-    existingBanks
-      .filter(b => isEditBank.value ? b.id !== editingBankId.value : true)
-      .map(b => b.subject_id || b.subject?.id)
-      .filter(Boolean)
-  )
+  const covered = bankCoveredClassIds.value
 
-  let list = []
-  if (scheds.length > 0) {
-    const map = new Map()
-    scheds.forEach(s => {
-      let foundSub = null
-      const subId = s.subject_id || s.subject?.id || s.bank?.subject_id || s.bank?.subject?.id
-      if (subId) {
-        foundSub = s.subject || (s.bank?.subject) || subjects.value.find(sub => sub.id === subId)
-      }
-      if (!foundSub && s.title) {
-        foundSub = subjects.value.find(sub => s.title.toLowerCase().includes(sub.name.toLowerCase()))
-      }
-      if (foundSub && !map.has(foundSub.id)) {
-        map.set(foundSub.id, {
-          id: foundSub.id,
-          name: foundSub.name,
-          code: foundSub.code
-        })
-      }
-    })
-    // In edit mode, ensure the currently edited bank's subject is in the list
-    if (isEditBank.value && editingBankId.value) {
-      const currentBank = existingBanks.find(b => b.id === editingBankId.value)
-      if (currentBank?.subject && !map.has(currentBank.subject.id)) {
-        map.set(currentBank.subject.id, {
-          id: currentBank.subject.id,
-          name: currentBank.subject.name,
-          code: currentBank.subject.code
-        })
-      }
-    }
-    list = Array.from(map.values())
-  } else {
-    list = subjects.value || []
+  const map = new Map()
+  const addOption = (sub, grade) => {
+    const key = bankOptionKey(sub.id, grade)
+    if (!map.has(key)) map.set(key, { key, id: sub.id, name: sub.name, code: sub.code, grade })
   }
 
-  return list
-    .filter(sub => !existingBankSubjectIds.has(sub.id))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  if (scheds.length > 0) {
+    // Opsi angkatan muncul selama masih ada kelas terjadwal di angkatan itu yang belum punya bank soal.
+    scheds.forEach(s => {
+      const sub = scheduleSubjectOf(s)
+      if (sub && !covered.get(sub.id)?.has(scheduleClassIdOf(s))) addOption(sub, scheduleGradeOf(s))
+    })
+  } else {
+    (subjects.value || []).filter(sub => !covered.has(sub.id)).forEach(sub => addOption(sub, ''))
+  }
+
+  // Saat edit, pastikan pilihan bank yang sedang disunting tetap ada
+  if (isEditBank.value && editingBankId.value) {
+    const currentBank = (readinessData.value.question_banks || []).find(b => b.id === editingBankId.value)
+    if (currentBank?.subject && !currentBank.classes?.length) addOption(currentBank.subject, currentBank.grade || '')
+  }
+
+  return Array.from(map.values())
+    .sort((a, b) => a.name.localeCompare(b.name) || (bankGradeOrder[a.grade] || 9) - (bankGradeOrder[b.grade] || 9))
 })
 
+// Mode "Pilih Kelas": mapel dari jadwal event (atau semua mapel bila belum ada jadwal)
+const bankCustomSubjects = computed(() => {
+  const map = new Map()
+  ;(currentEventSchedules.value || []).forEach(s => {
+    const sub = scheduleSubjectOf(s)
+    if (sub) map.set(sub.id, sub)
+  })
+  const currentBank = isEditBank.value && (readinessData.value.question_banks || []).find(b => b.id === editingBankId.value)
+  if (currentBank?.subject) map.set(currentBank.subject.id, currentBank.subject)
+  const list = map.size > 0 ? Array.from(map.values()) : (subjects.value || [])
+  return [...list].sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const bankCustomClassOptions = computed(() => {
+  const subId = newBankForm.value.subject_id
+  if (!subId) return []
+  const ids = new Set(
+    (currentEventSchedules.value || [])
+      .filter(s => scheduleSubjectOf(s)?.id === subId)
+      .map(scheduleClassIdOf)
+  )
+  // Pertahankan kelas yang sudah dipilih (mis. saat edit) meski tidak ada di jadwal
+  newBankForm.value.class_ids.forEach(id => ids.add(id))
+  const list = ids.size > 0 ? classes.value.filter(c => ids.has(c.id)) : classes.value
+  const covered = bankCoveredClassIds.value.get(subId) || new Set()
+  return list
+    .map(c => ({ id: c.id, name: c.name, grade: c.grade, covered: covered.has(c.id) && !newBankForm.value.class_ids.includes(c.id) }))
+    .sort((a, b) => (bankGradeOrder[a.grade] || 9) - (bankGradeOrder[b.grade] || 9) || a.name.localeCompare(b.name, undefined, { numeric: true }))
+})
+
+const bankFormLocked = computed(() =>
+  !isEditBank.value && newBankForm.value.scope === 'grade' && availableBankSubjects.value.length === 0
+)
+
+const bankEventPrefix = () => selectedExamEvent.value?.title ? `${selectedExamEvent.value.title} - ` : ''
+
+const bankTitleFor = (opt) => `${bankEventPrefix()}${opt.name}${opt.grade ? ` Kelas ${opt.grade}` : ''}`
+
+const refreshCustomBankTitle = () => {
+  const sub = bankCustomSubjects.value.find(s => s.id === newBankForm.value.subject_id)
+  if (!sub) return
+  const names = bankCustomClassOptions.value.filter(c => newBankForm.value.class_ids.includes(c.id)).map(c => c.name)
+  newBankForm.value.title = `${bankEventPrefix()}${sub.name}${names.length ? ` ${names.join(', ')}` : ''}`
+}
+
 const onBankSubjectChange = () => {
-  const selSubj = availableBankSubjects.value.find(s => s.id === newBankForm.value.subject_id) || subjects.value.find(s => s.id === newBankForm.value.subject_id)
-  if (selSubj) {
-    const evTitle = selectedExamEvent.value?.title ? `${selectedExamEvent.value.title} - ` : ''
-    newBankForm.value.title = `${evTitle}${selSubj.name}`
+  const selOpt = availableBankSubjects.value.find(o => o.key === newBankOptionKey.value)
+  if (selOpt) newBankForm.value.title = bankTitleFor(selOpt)
+}
+
+const onBankCustomSubjectChange = () => {
+  newBankForm.value.class_ids = []
+  refreshCustomBankTitle()
+}
+
+const toggleBankClass = (id) => {
+  const ids = newBankForm.value.class_ids
+  newBankForm.value.class_ids = ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]
+  refreshCustomBankTitle()
+}
+
+const setBankScope = (scope) => {
+  if (newBankForm.value.scope === scope) return
+  newBankForm.value.scope = scope
+  newBankForm.value.class_ids = []
+  if (scope === 'grade') {
+    const opt = availableBankSubjects.value.find(o => o.id === newBankForm.value.subject_id) || availableBankSubjects.value[0]
+    newBankForm.value.subject_id = opt?.id || ''
+    newBankForm.value.grade = opt?.grade || ''
+    if (opt) newBankForm.value.title = bankTitleFor(opt)
+  } else {
+    newBankForm.value.grade = ''
+    refreshCustomBankTitle()
   }
 }
 
@@ -8092,12 +8262,13 @@ const openUploadBankModal = (bank = null) => {
 const openCreateBankModal = () => {
   isEditBank.value = false
   editingBankId.value = null
-  const defaultSubj = availableBankSubjects.value[0]
-  const defaultSubjId = defaultSubj?.id || subjects.value[0]?.id || ''
-  const evTitle = selectedExamEvent.value?.title ? `${selectedExamEvent.value.title} - ` : ''
+  const defaultOpt = availableBankSubjects.value[0]
   newBankForm.value = {
-    subject_id: defaultSubjId,
-    title: defaultSubj ? `${evTitle}${defaultSubj.name}` : ''
+    scope: 'grade',
+    subject_id: defaultOpt?.id || '',
+    grade: defaultOpt?.grade || '',
+    class_ids: [],
+    title: defaultOpt ? bankTitleFor(defaultOpt) : ''
   }
   showCreateBankModal.value = true
 }
@@ -8106,7 +8277,10 @@ const openEditBankModal = (bank) => {
   isEditBank.value = true
   editingBankId.value = bank.id
   newBankForm.value = {
+    scope: bank.classes?.length ? 'classes' : 'grade',
     subject_id: bank.subject_id || bank.subject?.id || '',
+    grade: bank.grade || '',
+    class_ids: (bank.classes || []).map(c => c.id),
     title: bank.title || ''
   }
   showCreateBankModal.value = true
@@ -8121,18 +8295,33 @@ const submitCreateBank = async () => {
     })
     return
   }
+  const isCustomScope = newBankForm.value.scope === 'classes'
+  if (isCustomScope && newBankForm.value.class_ids.length === 0) {
+    await showAlertModal({
+      title: 'Kelas Belum Dipilih',
+      message: 'Pilih minimal satu kelas untuk bank soal dengan cakupan kelas tertentu.',
+      type: 'warning'
+    })
+    return
+  }
+  const scopePayload = {
+    grade: isCustomScope ? '' : newBankForm.value.grade,
+    class_ids: isCustomScope ? newBankForm.value.class_ids : []
+  }
 
   isCreatingBank.value = true
   try {
     if (isEditBank.value && editingBankId.value) {
       await api.put(`/admin/question-banks/${editingBankId.value}`, {
         subject_id: newBankForm.value.subject_id,
+        ...scopePayload,
         title: newBankForm.value.title.trim()
       })
       showToast('Bank soal berhasil diperbarui!', 'success')
     } else {
       const res = await api.post('/admin/question-banks', {
         subject_id: newBankForm.value.subject_id,
+        ...scopePayload,
         title: newBankForm.value.title.trim()
       })
       showToast('Bank soal baru berhasil dibuat!', 'success')
