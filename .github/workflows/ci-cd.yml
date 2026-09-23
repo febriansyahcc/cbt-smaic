@@ -5,6 +5,9 @@ name: CI/CD
 # - Push ke main          -> tes, lalu build & push image :latest dan :sha-xxxxxxx
 # - Push tag v1.2.3       -> tes, lalu build & push image :1.2.3 dan :1.2
 # Server sekolah menarik image baru lewat deploy/auto-update.sh.
+#
+# Setiap image ditandatangani cosign secara keyless (identitas OIDC workflow ini),
+# dan auto-update.sh menolak image yang tanda tangannya bukan dari workflow ini di main.
 
 on:
   push:
@@ -17,6 +20,9 @@ on:
 concurrency:
   group: ci-cd-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 env:
   IMAGE_NAMESPACE: mochamaddwifebriansyah13
@@ -59,6 +65,9 @@ jobs:
     needs: [backend-test, frontend-build]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # untuk tanda tangan keyless cosign
     strategy:
       fail-fast: false
       matrix:
@@ -86,6 +95,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build & push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: ./${{ matrix.service }}
@@ -95,3 +105,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - uses: sigstore/cosign-installer@v4.1.2
+
+      - name: Tanda tangani image (cosign keyless)
+        env:
+          IMAGE: ${{ env.IMAGE_NAMESPACE }}/cbt-${{ matrix.service }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
