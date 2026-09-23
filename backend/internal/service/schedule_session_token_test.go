@@ -37,19 +37,27 @@ func TestSessionTokenSharedPerSlot(t *testing.T) {
 		t.Fatal("sesi kosong tidak boleh punya token")
 	}
 
-	n, err := RegenerateSessionTokens(f.db, []uuid.UUID{a, b})
-	if err != nil || n != 1 {
-		t.Fatalf("RegenerateSessionTokens = %d, %v; ingin 1 sesi", n, err)
-	}
+	peer := mk(f.classY, start.Add(2*time.Hour), "DDDDDD", time.Hour)
+	unrelated := mk(f.classX, start.Add(4*time.Hour), "EEEEEE", time.Hour)
+
 	tokenOf := func(id uuid.UUID) string {
 		var s domain.ExamSchedule
 		f.db.First(&s, "id = ?", id)
 		return s.ExamToken
 	}
-	if tokenOf(a) != tokenOf(b) || tokenOf(a) == "AAAAAA" {
-		t.Fatalf("token sesi tidak seragam: %q vs %q", tokenOf(a), tokenOf(b))
+
+	// Centang jadwal a (sesi 07:30) dan other (sesi 09:30): satu token untuk keduanya,
+	// dan jadwal lain di kedua sesi itu (b, peer) ikut seragam.
+	token, n, err := RegenerateSessionTokens(f.db, []uuid.UUID{a, other})
+	if err != nil || n != 2 {
+		t.Fatalf("RegenerateSessionTokens = %d, %v; ingin 2 sesi", n, err)
 	}
-	if tokenOf(other) != "CCCCCC" {
-		t.Fatal("sesi lain tidak boleh ikut berubah")
+	for _, id := range []uuid.UUID{a, b, other, peer} {
+		if tokenOf(id) != token {
+			t.Fatalf("jadwal %s bertoken %q, ingin %q", id, tokenOf(id), token)
+		}
+	}
+	if tokenOf(unrelated) != "EEEEEE" {
+		t.Fatal("sesi yang tidak dicentang tidak boleh berubah")
 	}
 }

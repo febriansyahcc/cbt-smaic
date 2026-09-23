@@ -2226,18 +2226,23 @@ type RegenerateTokensRequest struct {
 	ScheduleIDs []uuid.UUID `json:"schedule_ids"`
 }
 
-// HandleRegenerateSessionTokens mengacak token baru per sesi waktu untuk jadwal terpilih.
-// Jadwal lain pada sesi yang sama ikut mendapat token baru agar tetap seragam.
+// HandleRegenerateSessionTokens memberi satu token baru yang sama untuk seluruh jadwal terpilih.
+// Jadwal lain pada sesi waktu yang sama ikut mendapat token itu agar tetap seragam.
 func (h *Handlers) HandleRegenerateSessionTokens(c *fiber.Ctx) error {
 	var req RegenerateTokensRequest
 	if err := c.BodyParser(&req); err != nil || len(req.ScheduleIDs) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Pilih minimal satu jadwal"})
 	}
-	sessions, err := service.RegenerateSessionTokens(h.repo.DB, req.ScheduleIDs)
+	token, sessions, err := service.RegenerateSessionTokens(h.repo.DB, req.ScheduleIDs)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal mengacak token"})
 	}
-	return c.JSON(fiber.Map{"success": true, "sessions": sessions, "message": fmt.Sprintf("Token baru dibuat untuk %d sesi waktu", sessions)})
+	return c.JSON(fiber.Map{
+		"success":    true,
+		"exam_token": token,
+		"sessions":   sessions,
+		"message":    fmt.Sprintf("Token %s diterapkan ke %d sesi waktu", token, sessions),
+	})
 }
 
 func (h *Handlers) HandleLinkScheduleBank(c *fiber.Ctx) error {

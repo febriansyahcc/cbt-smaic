@@ -84,19 +84,24 @@ func ApplySessionToken(db *gorm.DB, eventID *uuid.UUID, start time.Time, token s
 	return sessionSlot(db, eventID, start).Update("exam_token", token).Error
 }
 
-// RegenerateSessionTokens membuat satu token baru untuk setiap sesi waktu yang memuat jadwal
-// terpilih, lalu menerapkannya ke semua jadwal di sesi tersebut. Mengembalikan jumlah sesi.
-func RegenerateSessionTokens(db *gorm.DB, scheduleIDs []uuid.UUID) (int, error) {
+// RegenerateSessionTokens membuat SATU token baru untuk seluruh jadwal terpilih. Agar token
+// tetap seragam per sesi waktu, jadwal lain pada sesi yang sama dengan jadwal terpilih ikut
+// memakai token tersebut. Mengembalikan token baru dan jumlah sesi yang terdampak.
+func RegenerateSessionTokens(db *gorm.DB, scheduleIDs []uuid.UUID) (string, int, error) {
 	var picked []domain.ExamSchedule
 	if err := db.Where("id IN ?", scheduleIDs).Find(&picked).Error; err != nil {
-		return 0, err
+		return "", 0, err
+	}
+	token, err := GenerateExamToken()
+	if err != nil {
+		return "", 0, err
 	}
 	type slotKey struct {
 		event uuid.UUID
 		start int64
 	}
 	done := map[slotKey]bool{}
-	err := db.Transaction(func(tx *gorm.DB) error {
+	err = db.Transaction(func(tx *gorm.DB) error {
 		for _, s := range picked {
 			key := slotKey{start: s.StartTime.UnixNano()}
 			if s.EventID != nil {
@@ -106,10 +111,6 @@ func RegenerateSessionTokens(db *gorm.DB, scheduleIDs []uuid.UUID) (int, error) 
 				continue
 			}
 			done[key] = true
-			token, err := GenerateExamToken()
-			if err != nil {
-				return err
-			}
 			if err := ApplySessionToken(tx, s.EventID, s.StartTime, token); err != nil {
 				return err
 			}
@@ -117,7 +118,7 @@ func RegenerateSessionTokens(db *gorm.DB, scheduleIDs []uuid.UUID) (int, error) 
 		return nil
 	})
 	if err != nil {
-		return 0, err
+		return "", 0, err
 	}
-	return len(done), nil
+	return token, len(done), nil
 }

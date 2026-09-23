@@ -887,7 +887,7 @@
               @click="bulkRegenerateTokens()"
               class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 active:scale-95 text-slate-700 font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
             >
-              <span>Acak Token Baru</span>
+              <span>Samakan Token</span>
             </button>
             <button
               @click="selectedScheduleIds = []"
@@ -6493,9 +6493,9 @@ const bulkDeactivateSchedules = async () => {
 const bulkRegenerateTokens = async () => {
   if (!canManageSchedules.value || !selectedScheduleIds.value.length) return
   const confirmed = await showConfirmModal({
-    title: 'Acak Token Massal',
-    message: `Acak ulang token untuk sesi waktu dari ${selectedScheduleIds.value.length} jadwal terpilih? Jadwal lain pada jam mulai yang sama ikut mendapat token baru.`,
-    confirmText: 'Acak Token',
+    title: 'Samakan Token',
+    message: `${selectedScheduleIds.value.length} jadwal terpilih akan mendapat satu token baru yang sama. Jadwal lain dengan tanggal dan jam mulai yang sama ikut memakai token ini.`,
+    confirmText: 'Buat Token',
     cancelText: 'Batal'
   })
   if (!confirmed) return
