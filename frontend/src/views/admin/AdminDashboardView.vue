@@ -887,7 +887,7 @@
               @click="bulkRegenerateTokens()"
               class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 active:scale-95 text-slate-700 font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
             >
-              <span>Acak Token Baru</span>
+              <span>Samakan Token</span>
             </button>
             <button
               @click="selectedScheduleIds = []"
@@ -3576,7 +3576,7 @@
             <!-- Token, Durasi, Batas Tab -->
             <div class="grid grid-cols-3 gap-3">
               <div>
-                <label class="block font-bold text-slate-700 mb-1">Token Ruang:</label>
+                <label class="block font-bold text-slate-700 mb-1">Token Sesi:</label>
                 <input
                   v-model="scheduleForm.exam_token"
                   type="text"
@@ -3608,6 +3608,13 @@
                 />
               </div>
             </div>
+            <p class="-mt-1 text-[11px] text-slate-500">
+              <template v-if="scheduleFormSessionPeers.length">
+                Token dipakai bersama {{ scheduleFormSessionPeers.length }} jadwal lain pada sesi {{ scheduleForm.start_time }}
+                ({{ scheduleFormSessionPeers.map(p => p.class_room?.name).filter(Boolean).join(', ') }}). Mengubah token di sini ikut mengubah token jadwal tersebut.
+              </template>
+              <template v-else>Semua jadwal pada tanggal dan jam mulai yang sama otomatis memakai token ini.</template>
+            </p>
 
             <!-- Pengawas (opsional, hanya pemegang schedules:manage) -->
             <div v-if="authStore.hasPermission('schedules:manage')">
@@ -6486,38 +6493,19 @@ const bulkDeactivateSchedules = async () => {
 const bulkRegenerateTokens = async () => {
   if (!canManageSchedules.value || !selectedScheduleIds.value.length) return
   const confirmed = await showConfirmModal({
-    title: 'Acak Token Massal',
-    message: `Acak ulang token untuk ${selectedScheduleIds.value.length} sesi jadwal terpilih?`,
-    confirmText: 'Acak Token',
+    title: 'Samakan Token',
+    message: `${selectedScheduleIds.value.length} jadwal terpilih akan mendapat satu token baru yang sama. Jadwal lain dengan tanggal dan jam mulai yang sama ikut memakai token ini.`,
+    confirmText: 'Buat Token',
     cancelText: 'Batal'
   })
   if (!confirmed) return
 
   try {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-    const toRegen = schedules.value.filter(s => selectedScheduleIds.value.includes(s.id))
-    for (const sch of toRegen) {
-      let newToken = ''
-      for (let i = 0; i < 6; i++) {
-        newToken += chars.charAt(Math.floor(Math.random() * chars.length))
-      }
-      const res = await api.put(`/admin/schedules/${sch.id}`, {
-        title: sch.title,
-        bank_id: sch.bank_id,
-        class_room_id: sch.class_room_id || sch.class_id,
-        start_time: sch.start_time,
-        end_time: sch.end_time,
-        duration_minutes: sch.duration_minutes,
-        max_violations: sch.max_violations,
-        randomize_questions: sch.randomize_questions,
-        randomize_options: sch.randomize_options,
-        exam_token: newToken
-      })
-      sch.exam_token = res.data.exam_token || newToken
-    }
-    showToast(`Berhasil mengacak token untuk ${selectedScheduleIds.value.length} sesi!`, 'success')
+    const res = await api.post('/admin/schedules/regenerate-tokens', { schedule_ids: selectedScheduleIds.value })
+    await loadSchedules()
+    showToast(res.data?.message || 'Token baru berhasil dibuat', 'success')
   } catch (e) {
-    showToast('Gagal mengacak token massal', 'error')
+    showToast(e.response?.data?.message || 'Gagal mengacak token massal', 'error')
   }
 }
 
@@ -6898,6 +6886,29 @@ const openEditSchedule = (sch) => {
   scheduleFormInitialProctorIds.value = (sch.proctors || []).map(p => p.id)
   showScheduleModal.value = true
 }
+
+// Jadwal lain pada sesi waktu yang sama (event + tanggal + jam mulai) berbagi satu token.
+const localDateTimeParts = (iso) => {
+  const d = new Date(iso)
+  const pad = (n) => String(n).padStart(2, '0')
+  return { date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, time: `${pad(d.getHours())}:${pad(d.getMinutes())}` }
+}
+const scheduleFormSessionPeers = computed(() => {
+  const f = scheduleForm.value
+  if (!f?.exam_date || !f?.start_time) return []
+  return schedules.value.filter((sch) => {
+    if (sch.id === f.id || !sch.start_time) return false
+    if ((sch.event_id || '') !== (f.event_id || '')) return false
+    const { date, time } = localDateTimeParts(sch.start_time)
+    return date === f.exam_date && time === f.start_time
+  })
+})
+watch(scheduleFormSessionPeers, (peers) => {
+  // Jadwal baru langsung menampilkan token sesi yang sudah ada (server juga menerapkannya).
+  if (!isEditSchedule.value && peers.length && peers[0].exam_token) {
+    scheduleForm.value.exam_token = peers[0].exam_token
+  }
+})
 
 const submitScheduleForm = async () => {
   try {

@@ -188,6 +188,7 @@ func main() {
 	admin.Delete("/class-subjects/:id", master, handlers.HandleDeleteClassSubject)
 	admin.Get("/schedules", handlers.HandleGetAdminSchedules)
 	admin.Post("/schedules", schedulesMgr, handlers.HandleCreateSchedule)
+	admin.Post("/schedules/regenerate-tokens", schedulesMgr, handlers.HandleRegenerateSessionTokens)
 	admin.Put("/schedules/:id", schedulesMgr, handlers.HandleUpdateSchedule)
 	// Menautkan bank soal mengubah jadwal: hanya pengelola jadwal (schedules:manage; ADMIN dan "*" otomatis).
 	admin.Post("/schedules/:id/link-bank", schedulesMgr, handlers.HandleLinkScheduleBank)
