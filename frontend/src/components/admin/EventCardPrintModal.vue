@@ -200,7 +200,7 @@ const cardTypeOptions = [
 ]
 const cardType = ref('peserta')
 const cardTypeLabel = computed(() => cardTypeOptions.find((o) => o.value === cardType.value)?.label || 'Kartu')
-const SCHOOL_NAME = 'SMA ISLAMIC CENTRE DEMAK'
+const SCHOOL_NAME = 'SMAS ISLAMIC CENTRE DEMAK'
 
 const rendered = ref(false)
 const isLoading = ref(false)
