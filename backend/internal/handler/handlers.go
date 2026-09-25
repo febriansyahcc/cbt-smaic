@@ -2579,24 +2579,60 @@ func (h *Handlers) HandleGetBankQuestions(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "Bank soal tidak ditemukan"})
 	}
 
+	return c.JSON(fiber.Map{
+		"success": true,
+		"bank":    bank,
+		"data":    h.loadBankQuestionDetails(bankID),
+	})
+}
+
+// HandleGetBankPrint mengirim naskah lengkap (soal, opsi, kunci, rubrik) untuk dicetak.
+// Hanya bank yang sudah terkunci agar naskah cetak sama dengan yang dipakai ujian.
+// Urutan mengikuti nomor soal di bank (tidak diacak).
+func (h *Handlers) HandleGetBankPrint(c *fiber.Ctx) error {
+	bankID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "ID bank soal tidak valid"})
+	}
+	if h.denyBank(c, bankID) {
+		return nil
+	}
+
+	var bank domain.QuestionBank
+	if err := h.repo.DB.Preload("Subject").Preload("Classes").First(&bank, "id = ?", bankID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "Bank soal tidak ditemukan"})
+	}
+	if !bank.IsLocked {
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"success": false, "message": "Kunci naskah terlebih dahulu sebelum mencetak"})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"bank":    bank,
+		"data":    h.loadBankQuestionDetails(bankID),
+	})
+}
+
+// BankQuestionDetail adalah butir soal beserta opsi yang sudah diurai dari OptionsJSON.
+type BankQuestionDetail struct {
+	ID             uuid.UUID           `json:"id"`
+	BankID         uuid.UUID           `json:"bank_id"`
+	QuestionNumber int                 `json:"question_number"`
+	Type           domain.QuestionType `json:"type"`
+	ContentHTML    string              `json:"content_html"`
+	OptionsJSON    string              `json:"options_json"`
+	Options        []domain.OptionItem `json:"options"`
+	CorrectKey     string              `json:"correct_key"`
+	RubricGuide    string              `json:"rubric_guide"`
+	ScoreWeight    float64             `json:"score_weight"`
+	CreatedAt      time.Time           `json:"created_at"`
+}
+
+func (h *Handlers) loadBankQuestionDetails(bankID uuid.UUID) []BankQuestionDetail {
 	var questions []domain.Question
 	h.repo.DB.Where("bank_id = ?", bankID).Order("question_number ASC").Find(&questions)
 
-	type QuestionDetail struct {
-		ID             uuid.UUID           `json:"id"`
-		BankID         uuid.UUID           `json:"bank_id"`
-		QuestionNumber int                 `json:"question_number"`
-		Type           domain.QuestionType `json:"type"`
-		ContentHTML    string              `json:"content_html"`
-		OptionsJSON    string              `json:"options_json"`
-		Options        []domain.OptionItem `json:"options"`
-		CorrectKey     string              `json:"correct_key"`
-		RubricGuide    string              `json:"rubric_guide"`
-		ScoreWeight    float64             `json:"score_weight"`
-		CreatedAt      time.Time           `json:"created_at"`
-	}
-
-	res := make([]QuestionDetail, 0, len(questions))
+	res := make([]BankQuestionDetail, 0, len(questions))
 	for _, q := range questions {
 		var opts []domain.OptionItem
 		if err := json.Unmarshal([]byte(q.OptionsJSON), &opts); err != nil {
@@ -2606,7 +2642,7 @@ func (h *Handlers) HandleGetBankQuestions(c *fiber.Ctx) error {
 		if qType == "" {
 			qType = domain.TypeMultipleChoice
 		}
-		res = append(res, QuestionDetail{
+		res = append(res, BankQuestionDetail{
 			ID:             q.ID,
 			BankID:         q.BankID,
 			QuestionNumber: q.QuestionNumber,
@@ -2621,11 +2657,7 @@ func (h *Handlers) HandleGetBankQuestions(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"bank":    bank,
-		"data":    res,
-	})
+	return res
 }
 
 type ReorderBankQuestionsRequest struct {

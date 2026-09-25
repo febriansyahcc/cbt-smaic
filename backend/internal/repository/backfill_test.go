@@ -190,3 +190,35 @@ func TestBackfillStaffPermissionsClearsSiswaPermissions(t *testing.T) {
 		t.Fatalf("jalan kedua: n=%d err=%v, ingin 0 tanpa galat", n, err)
 	}
 }
+
+func TestGrantQuestionsPrintOnce(t *testing.T) {
+	db := newBackfillDB(t)
+	print := string(domain.PermQuestionsPrint)
+
+	reader := mkBackfillUser(t, db, "guru-reader", domain.RoleGuru, []string{"questions:read_all"})
+	proctor := mkBackfillUser(t, db, "guru-proctor", domain.RoleGuru, []string{"proctor:control"})
+	already := mkBackfillUser(t, db, "guru-print", domain.RoleGuru, []string{"questions:read_assigned", print})
+
+	n, err := GrantQuestionsPrintOnce(db)
+	if err != nil || n != 1 {
+		t.Fatalf("jalan pertama: n=%d err=%v, ingin 1 akun", n, err)
+	}
+	if got := storedPermissions(t, db, reader); !reflect.DeepEqual(got, []string{"questions:read_all", print, "questions:read_assigned"}) {
+		t.Errorf("pembaca bank: %v", got)
+	}
+	if got := storedPermissions(t, db, proctor); !reflect.DeepEqual(got, []string{"proctor:control"}) {
+		t.Errorf("pengawas tidak boleh mendapat izin cetak: %v", got)
+	}
+	if got := storedPermissions(t, db, already); !reflect.DeepEqual(got, []string{"questions:read_assigned", print}) {
+		t.Errorf("akun yang sudah punya izin berubah: %v", got)
+	}
+
+	// Izin yang dicabut admin sesudahnya tidak boleh diberikan kembali.
+	db.Model(&domain.User{ID: reader}).Select("Permissions").Updates(&domain.User{Permissions: []string{"questions:read_all", "questions:read_assigned"}})
+	if n, err := GrantQuestionsPrintOnce(db); err != nil || n != 0 {
+		t.Fatalf("jalan kedua harus no-op: n=%d err=%v", n, err)
+	}
+	if got := storedPermissions(t, db, reader); !reflect.DeepEqual(got, []string{"questions:read_all", "questions:read_assigned"}) {
+		t.Errorf("izin cetak diberikan ulang: %v", got)
+	}
+}

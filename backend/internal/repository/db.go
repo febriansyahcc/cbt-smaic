@@ -77,6 +77,7 @@ func InitDB() (*Database, error) {
 	repo := &Database{DB: db}
 	repo.SeedInitialData()
 	repo.BackfillStaffPermissions()
+	repo.GrantQuestionsPrintOnce()
 	repo.EnsureClassSubjectAssignments()
 	repo.MigrateOrSeedDefaultEvent()
 
