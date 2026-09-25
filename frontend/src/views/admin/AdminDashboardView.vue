@@ -3292,6 +3292,20 @@
                           <span>Pratinjau</span>
                         </button>
 
+                        <!-- Cetak naskah & kunci (hanya bank terkunci) -->
+                        <button
+                          v-if="canPrintQuestionBanks && b.is_locked"
+                          type="button"
+                          @click="openQuestionPrint(b)"
+                          class="px-3 h-8 inline-flex items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold whitespace-nowrap shrink-0 transition active:scale-95 cursor-pointer bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                          title="Cetak naskah soal dan kunci jawaban"
+                        >
+                          <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                          </svg>
+                          <span>Cetak</span>
+                        </button>
+
                         <!-- Impor / Unggah Soal -->
                         <button
                           type="button"
@@ -4730,6 +4744,7 @@
     <!-- MODAL: CETAK DAFTAR HADIR & BERITA ACARA DARI DATA PENGAWASAN LIVE -->
     <ProctorPrintModal v-model="showProctorPrint" :proctor-data="proctorData" />
     <EventCardPrintModal v-model="showCardPrint" :event="cardPrintEvent" />
+    <QuestionPrintModal v-model="showQuestionPrint" :bank="questionPrintBank" />
 
     <!-- MODAL: CETAK DOKUMEN RESMI UJIAN (DAFTAR HADIR & BERITA ACARA) -->
     <div v-if="showPrintModal && printSchedule" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-xs overflow-y-auto">
@@ -5879,6 +5894,7 @@ import ProctorPrintModal from '@/components/proctor/ProctorPrintModal.vue'
 import ScheduleProctorModal from '@/components/admin/ScheduleProctorModal.vue'
 import StaffAccessEditor from '../../components/admin/StaffAccessEditor.vue'
 import EventCardPrintModal from '../../components/admin/EventCardPrintModal.vue'
+import QuestionPrintModal from '../../components/admin/QuestionPrintModal.vue'
 import { landingTab } from '../../utils/access'
 import {
   applyImplications,
@@ -7749,6 +7765,15 @@ const loadProctorSchedules = async () => {
 const canShowTeacherQuestionSection = computed(() => authStore.canAccessTab('questions'))
 const canShowTeacherProctorSection = computed(() => authStore.canAccessTab('proctor'))
 const canLockQuestionBanks = computed(() => authStore.hasPermission('questions:lock'))
+const canPrintQuestionBanks = computed(() => authStore.hasPermission('questions:print'))
+
+// Cetak naskah soal & kunci jawaban (hanya bank yang sudah terkunci).
+const showQuestionPrint = ref(false)
+const questionPrintBank = ref(null)
+const openQuestionPrint = (bank) => {
+  questionPrintBank.value = bank
+  showQuestionPrint.value = true
+}
 
 const isTodayDate = (value) => !!value && new Date(value).toDateString() === new Date().toDateString()
 const scheduleStartTimestamp = (sch) => {

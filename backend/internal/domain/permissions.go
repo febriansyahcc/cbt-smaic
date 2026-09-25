@@ -15,6 +15,7 @@ const (
 	PermProctorControlAll Permission = "proctor:control_all"
 	PermEventsManage      Permission = "events:manage"
 	PermUsersManage       Permission = "users:manage"
+	PermQuestionsPrint    Permission = "questions:print"
 )
 
 // ScheduleProctor menugaskan seorang pengawas ke satu jadwal ujian.
@@ -64,6 +65,7 @@ func PermissionCatalog() []PermissionGroup {
 				{Key: string(PermQuestionsUpload), Label: "Tambah dan unggah soal", Description: "Membuat bank soal, menambah butir soal, impor Excel, unggah gambar"},
 				{Key: string(PermQuestionsManage), Label: "Ubah dan hapus bank soal", Description: "Mengedit atau menghapus bank soal dan butir soal"},
 				{Key: string(PermQuestionsLock), Label: "Kunci dan buka kunci naskah", Description: "Mengunci bank soal agar tidak dapat diubah"},
+				{Key: string(PermQuestionsPrint), Label: "Cetak naskah dan kunci jawaban", Description: "Mencetak naskah soal dan kunci jawaban dari bank soal yang sudah terkunci"},
 			},
 		},
 		{
@@ -122,6 +124,7 @@ func RoleTemplates() []RoleTemplate {
 				string(PermQuestionsUpload),
 				string(PermQuestionsManage),
 				string(PermQuestionsLock),
+				string(PermQuestionsPrint),
 				string(PermSchedulesRead),
 				string(PermProctorControl),
 				string(PermReportsExport),
@@ -194,6 +197,7 @@ var permissionImplications = map[string][]string{
 	string(PermQuestionsManage):   {string(PermQuestionsAssigned)},
 	string(PermQuestionsUpload):   {string(PermQuestionsAssigned)},
 	string(PermQuestionsLock):     {string(PermQuestionsAssigned)},
+	string(PermQuestionsPrint):    {string(PermQuestionsAssigned)},
 }
 
 // PermissionImplications mengembalikan peta ketergantungan izin: kunci adalah izin yang
