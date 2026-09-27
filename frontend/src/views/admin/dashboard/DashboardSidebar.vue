@@ -267,6 +267,30 @@
           </button>
         </nav>
       </div>
+      <!-- Group 4: Sistem (khusus administrator) -->
+      <div v-if="authStore.canAccessTab('backup')">
+        <div v-show="!isSidebarCollapsed" class="px-3 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          Sistem
+        </div>
+        <div v-show="isSidebarCollapsed" class="w-8 mx-auto my-2 border-b border-slate-800"></div>
+        <nav class="space-y-1">
+          <button
+            type="button"
+            @click="switchTab('backup')"
+            :class="[
+              'w-full flex items-center rounded-2xl text-xs font-semibold transition',
+              isSidebarCollapsed ? 'justify-center py-2.5 px-0' : 'gap-3 px-3 py-2.5',
+              activeTab === 'backup' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            ]"
+            :title="isSidebarCollapsed ? 'Backup Data' : ''"
+          >
+            <svg class="w-5 h-5 shrink-0 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+            </svg>
+            <span v-show="!isSidebarCollapsed" class="truncate">Backup Data</span>
+          </button>
+        </nav>
+      </div>
     </div>
 
     <!-- Sidebar Footer / Admin Profile -->

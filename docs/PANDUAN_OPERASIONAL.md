@@ -156,3 +156,15 @@ FORCE=1 /opt/cbt/deploy/auto-update.sh          # update sekarang tanpa cek ujia
 ```
 
 Rollback ke versi tertentu: ubah `image:` di `deploy/docker-compose.yml` ke tag versi (mis. `cbt-backend:1.2.3`), buat `.update-paused`, lalu `docker compose up -d`.
+
+---
+
+## 7. Backup Data
+
+Administrator mengelola backup di menu **Sistem → Backup Data**: buat backup manual, unduh, dan hapus. Backend juga membuat backup otomatis setiap hari mulai pukul 01.00 (ditunda selama ada siswa yang sedang mengerjakan ujian) dan menyimpan 14 backup terakhir per jenis.
+
+- Satu berkas `.tar.gz` berisi `database.dump` (pg_dump), folder `uploads/` (gambar soal), dan `manifest.json`.
+- Berkas disimpan di volume `cbt_backups_data`. Pastikan volume ini ada di `docker-compose.yml` server, kalau tidak backup hilang setiap kontainer backend dibuat ulang.
+- Backup di server ikut hilang bila disk rusak: **unduh salinannya secara rutin**.
+- Pengaturan lewat `.env`: `BACKUP_AUTO`, `BACKUP_HOUR`, `BACKUP_KEEP`.
+- Langkah pemulihan ada di `docs/manual/panduan-teknis.html` Bab 5.

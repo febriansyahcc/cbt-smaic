@@ -136,23 +136,63 @@ bash setup.sh        # menarik image dan menjalankan sistem</pre>
 
 <!-- ================= BAB 5 ================= -->
 <h2 class="chapter"><span class="chapter-no">Bab 5</span>Cadangan dan Pemulihan Data</h2>
-<p class="when"><b>Kapan dipakai:</b> sebelum dan sesudah pekan ujian, sebelum pembaruan besar, dan sebelum menjalankan skrip pembersihan.</p>
+<p class="when"><b>Kapan dipakai:</b> backup berjalan otomatis setiap malam. Unduh salinannya secara berkala, terutama sebelum dan sesudah pekan ujian, sebelum pembaruan besar, dan sebelum menjalankan skrip pembersihan.</p>
 
-<h3>Mencadangkan basis data</h3>
-<pre>docker exec cbt-postgres pg_dump -U cbt_user -Fc -f /tmp/cbt.dump cbt_db
-docker cp cbt-postgres:/tmp/cbt.dump ./cbt-2026-09-27.dump</pre>
-<p>Ganti tanggal pada nama berkas. Simpan salinannya di luar server, misalnya di diska eksternal.</p>
+<h3>Backup dari aplikasi</h3>
+<p>Administrator membuka menu <b>Sistem &rarr; Backup Data</b> di portal staf. Dari sana administrator dapat:</p>
+<ul>
+  <li>menekan <b>Buat Backup Sekarang</b> untuk backup manual,</li>
+  <li>menekan <b>Unduh</b> untuk menyimpan salinan ke laptop atau flashdisk,</li>
+  <li>menekan <b>Hapus</b> untuk membuang backup yang tidak diperlukan.</li>
+</ul>
+<p>Setiap backup adalah satu berkas <code>cbt-backup-TANGGAL-JAM-auto.tar.gz</code> (otomatis) atau <code>...-manual.tar.gz</code> berisi:</p>
+<ul>
+  <li><code>database.dump</code>: seluruh basis data PostgreSQL (format <code>pg_dump</code> custom),</li>
+  <li><code>uploads/</code>: gambar soal yang diunggah guru,</li>
+  <li><code>manifest.json</code>: waktu dan jenis backup.</li>
+</ul>
+<div class="note danger"><span class="label">Penting</span>Berkas backup memuat seluruh data, termasuk hash kata sandi semua akun. Menu ini hanya tersedia bagi Administrator. Simpan salinan unduhan di tempat yang aman.</div>
+<div class="note warn"><span class="label">Perhatian</span>Backup di daftar aplikasi tersimpan di disk server yang sama. Bila disk server rusak, backup itu ikut hilang. Karena itu unduh salinannya secara rutin.</div>
 
-<h3>Memulihkan basis data</h3>
-<pre>docker cp ./cbt-2026-09-27.dump cbt-postgres:/tmp/cbt.dump
-docker exec cbt-postgres pg_restore -U cbt_user -d cbt_db --clean --if-exists /tmp/cbt.dump
-docker compose restart backend</pre>
-<div class="note danger"><span class="label">Penting</span>Pemulihan menimpa seluruh data saat ini. Jangan lakukan saat ujian berlangsung.</div>
+<h3>Backup otomatis</h3>
+<p>Backend membuat backup otomatis sekali sehari, mulai pukul 01.00 waktu server. Bila saat itu ada siswa yang sedang mengerjakan ujian, backup ditunda sampai tidak ada sesi yang berjalan. Hanya 14 backup otomatis terakhir yang disimpan, yang lebih lama dihapus otomatis. Backup manual juga dibatasi 14 berkas terbaru. Pengaturan dapat diubah lewat <code>.env</code>:</p>
+<table>
+  <thead><tr><th>Variabel</th><th>Arti</th><th>Bawaan</th></tr></thead>
+  <tbody>
+    <tr><td class="key"><code>BACKUP_AUTO</code></td><td>Isi <code>false</code> untuk mematikan backup otomatis</td><td><code>true</code></td></tr>
+    <tr><td class="key"><code>BACKUP_HOUR</code></td><td>Jam mulai backup otomatis (0&ndash;23)</td><td><code>1</code></td></tr>
+    <tr><td class="key"><code>BACKUP_KEEP</code></td><td>Jumlah backup yang disimpan per jenis</td><td><code>14</code></td></tr>
+  </tbody>
+</table>
+<p>Berkas backup disimpan di volume Docker <code>cbt_backups_data</code> (folder <code>/app/backups</code> di kontainer backend). Volume ini wajib ada di <code>docker-compose.yml</code>. Tanpa volume itu, backup hilang setiap kali kontainer backend dibuat ulang, misalnya saat pembaruan otomatis.</p>
+<p>Menyalin backup langsung dari server tanpa lewat browser:</p>
+<pre>docker exec cbt-backend ls -lh /app/backups
+docker cp cbt-backend:/app/backups/cbt-backup-20260927-010000-auto.tar.gz .</pre>
 
-<h3>Berkas unggahan (gambar soal)</h3>
-<p>Pada instalasi <code>deploy/</code>, gambar yang diunggah guru tersimpan di volume <code>cbt_uploads_data</code>. Cadangkan dengan:</p>
-<pre>docker run --rm -v cbt_uploads_data:/data -v "$PWD":/backup alpine tar czf /backup/uploads-2026-09-27.tgz -C /data .</pre>
-<div class="note warn"><span class="label">Perhatian</span><code>docker-compose.yml</code> di folder utama proyek (dipakai <code>docker-start.bat</code>) belum memiliki volume untuk folder unggahan. Pada instalasi itu, gambar soal tersimpan di dalam kontainer dan dapat hilang saat kontainer dibangun ulang.</div>
+<h3>Memulihkan data dari berkas backup</h3>
+<div class="note danger"><span class="label">Penting</span>Pemulihan menimpa seluruh data saat ini. Jangan lakukan saat ujian berlangsung. Buat backup manual terlebih dahulu agar kondisi sebelum pemulihan masih bisa dikembalikan.</div>
+<p>Jalankan dari folder yang berisi <code>docker-compose.yml</code>. Ganti nama berkas sesuai backup yang dipulihkan.</p>
+<pre># 1. Ekstrak arsip backup
+mkdir -p /tmp/pulih
+tar xzf cbt-backup-20260927-010000-auto.tar.gz -C /tmp/pulih
+
+# 2. Tutup akses pengguna selama pemulihan
+docker compose stop frontend
+
+# 3. Pulihkan basis data
+docker cp /tmp/pulih/database.dump cbt-postgres:/tmp/cbt.dump
+docker exec cbt-postgres pg_restore -U cbt_user -d cbt_db --clean --if-exists --no-owner /tmp/cbt.dump
+docker exec cbt-postgres rm /tmp/cbt.dump
+
+# 4. Pulihkan gambar soal
+docker cp /tmp/pulih/uploads/. cbt-backend:/app/uploads/
+docker exec -u 0 cbt-backend chown -R cbtuser:cbtgroup /app/uploads
+
+# 5. Jalankan ulang aplikasi
+docker compose restart backend
+docker compose start frontend
+rm -rf /tmp/pulih</pre>
+<p>Ganti <code>cbt_user</code> dan <code>cbt_db</code> bila <code>DB_USER</code> atau <code>DB_NAME</code> di <code>.env</code> berbeda.</p>
 
 <!-- ================= BAB 6 ================= -->
 <h2 class="chapter"><span class="chapter-no">Bab 6</span>Pembaruan Aplikasi</h2>
@@ -164,6 +204,7 @@ docker compose restart backend</pre>
 </ul>
 
 <h3>Memasang jadwal pembaruan</h3>
+<p>Contoh di bawah memakai folder instalasi <code>/opt/cbt/deploy</code>. Bila <code>docker-compose.yml</code> di server Anda berada di folder lain (misalnya <code>/opt/cbt</code>), letakkan <code>auto-update.sh</code> di folder itu dan sesuaikan path pada semua perintah.</p>
 <pre>chmod +x /opt/cbt/deploy/auto-update.sh
 sudo crontab -e
 # tambahkan baris berikut (cek setiap 10 menit):

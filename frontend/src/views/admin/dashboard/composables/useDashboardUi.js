@@ -82,6 +82,12 @@ export function useDashboardUi(ctx) {
           tag: 'Master Data',
           description: 'Alokasi mata pelajaran per rombel dan penetapan guru pengampu'
         }
+      case 'backup':
+        return {
+          title: 'Backup Data',
+          tag: 'Sistem',
+          description: 'Cadangan database dan gambar soal: backup otomatis harian, backup manual, dan unduh salinan'
+        }
       default:
         return {
           title: 'Portal CBT',

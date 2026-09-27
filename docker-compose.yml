@@ -38,6 +38,11 @@ services:
       DB_DSN: "postgres://${DB_USER:-cbt_user}:${DB_PASSWORD:-cbt_secret_password_2026}@postgres:5432/${DB_NAME:-cbt_db}?sslmode=disable"
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET wajib diisi di file .env}
       TZ: ${TZ:-Asia/Jakarta}
+      BACKUP_AUTO: ${BACKUP_AUTO:-true}
+      BACKUP_HOUR: ${BACKUP_HOUR:-1}
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+    volumes:
+      - backups_data:/app/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,6 +75,8 @@ services:
 volumes:
   postgres_data:
     name: cbt_postgres_data
+  backups_data:
+    name: cbt_backups_data
 
 networks:
   cbt-network:

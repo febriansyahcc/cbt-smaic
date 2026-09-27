@@ -13,6 +13,7 @@ export function useDashboardNavigation(ctx) {
     currentScopedEventId,
     events,
     isMobileSidebarOpen,
+    loadBackups,
     loadClassSubjects,
     loadEvents,
     loadPermissionCatalog,
@@ -61,6 +62,8 @@ export function useDashboardNavigation(ctx) {
       loadSubjects()
     } else if (tab === 'class-subjects') {
       loadClassSubjects()
+    } else if (tab === 'backup') {
+      loadBackups()
     } else if (tab === 'proctor') {
       if (targetScheduleId) {
         activeProctorScheduleId.value = targetScheduleId
