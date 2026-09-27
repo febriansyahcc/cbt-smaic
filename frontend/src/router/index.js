@@ -3,7 +3,6 @@ import LoginView from '../views/LoginView.vue'
 import StudentHomeView from '../views/student/StudentHomeView.vue'
 import ExamView from '../views/student/ExamView.vue'
 import ExamFinishedView from '../views/student/ExamFinishedView.vue'
-import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
 import { homePathFor, isStaffUser } from '../utils/access'
 
 const routes = [
@@ -29,7 +28,9 @@ const routes = [
   {
     path: '/admin',
     name: 'admin-dashboard',
-    component: AdminDashboardView,
+    // Dimuat terpisah: siswa tidak perlu mengunduh kode dasbor staf. Halaman siswa tetap di
+    // bundle utama agar alur ujian tidak bergantung pada unduhan chunk di tengah jalan.
+    component: () => import('../views/admin/AdminDashboardView.vue'),
     meta: { requiresAuth: true, staff: true }
   },
   {
@@ -86,6 +87,28 @@ router.beforeEach((to, from, next) => {
     }
   }
   next()
+})
+
+// Setelah redeploy, tab lama bisa merujuk chunk yang sudah tidak ada. Muat ulang halaman
+// tujuan sekali agar index.html dan nama chunk terbaru terambil.
+router.onError((err, to) => {
+  const isChunkError = /dynamically imported module|Importing a module script failed/i.test(err?.message || '')
+  if (!isChunkError) return
+  try {
+    if (sessionStorage.getItem('cbt_chunk_reload') === to.fullPath) return
+    sessionStorage.setItem('cbt_chunk_reload', to.fullPath)
+  } catch (e) {
+    // sessionStorage tidak tersedia: tetap coba muat ulang sekali
+  }
+  window.location.assign(to.fullPath)
+})
+
+router.afterEach(() => {
+  try {
+    sessionStorage.removeItem('cbt_chunk_reload')
+  } catch (e) {
+    // abaikan
+  }
 })
 
 export default router
