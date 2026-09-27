@@ -576,6 +576,17 @@ func (h *Handlers) HandleImportQuestionsExcel(c *fiber.Ctx) error {
 		return nil
 	}
 
+	var bank domain.QuestionBank
+	if err := h.repo.DB.First(&bank, "id = ?", bankID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "Bank soal tidak ditemukan"})
+	}
+	if bank.IsLocked {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Bank soal terkunci. Buka kunci terlebih dahulu untuk mengunggah soal.",
+		})
+	}
+
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "File Excel tidak ditemukan dalam request"})
@@ -602,8 +613,10 @@ func (h *Handlers) HandleImportQuestionsExcel(c *fiber.Ctx) error {
 		h.repo.DB.Create(&q)
 	}
 
-	// Update bank count
-	h.repo.DB.Model(&domain.QuestionBank{}).Where("id = ?", bankID).Update("total_questions", len(questions))
+	// Impor menambah soal ke bank, jadi jumlahnya dihitung ulang dari seluruh butir soal.
+	var total int64
+	h.repo.DB.Model(&domain.Question{}).Where("bank_id = ?", bankID).Count(&total)
+	h.repo.DB.Model(&domain.QuestionBank{}).Where("id = ?", bankID).Update("total_questions", int(total))
 
 	return c.JSON(fiber.Map{
 		"success":        true,
