@@ -340,7 +340,7 @@ func (s *ProctorService) ForceSubmitSession(sessionID uuid.UUID) (float64, error
 		return 0, errors.New("sesi tidak ditemukan")
 	}
 	examService := NewExamService(s.repo)
-	return examService.SubmitExam(sessionID, session.StudentID)
+	return examService.ForceSubmit(sessionID, session.StudentID)
 }
 
 // GetViolationLogs returns the log of cheat attempts and supervisor interventions for a session

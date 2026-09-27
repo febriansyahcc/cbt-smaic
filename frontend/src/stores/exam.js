@@ -329,7 +329,8 @@ export const useExamStore = defineStore('exam', {
     // Sebelum mengumpulkan, tanya deadline terbaru ke server: bila pengawas baru menambah waktu,
     // timer dilanjutkan alih-alih mengumpulkan terlalu cepat.
     async autoSubmitOnTimeout() {
-      if (this.isAutoSubmitting) return
+      // Sesi terkunci hanya bisa dikumpulkan pengawas; tetap di layar kunci.
+      if (this.isAutoSubmitting || this.isBlocked) return
       this.isAutoSubmitting = true
       await this.flushSyncQueue({ force: true })
       if (this.remainingSeconds > 0) {

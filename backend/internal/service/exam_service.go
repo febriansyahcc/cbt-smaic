@@ -213,7 +213,9 @@ func (s *ExamService) StartOrResumeExam(studentUserID uuid.UUID, scheduleID uuid
 
 	// Fetch existing student answers
 	var answers []domain.StudentAnswer
-	s.repo.DB.Where("session_id = ?", session.ID).Find(&answers)
+	if err := s.repo.DB.Where("session_id = ?", session.ID).Find(&answers).Error; err != nil {
+		return nil, fmt.Errorf("gagal memuat jawaban tersimpan: %w", err)
+	}
 	savedMap := make(map[string]SavedAnswer)
 	for _, a := range answers {
 		savedMap[a.QuestionID.String()] = SavedAnswer{
@@ -255,7 +257,7 @@ func (s *ExamService) StartOrResumeExam(studentUserID uuid.UUID, scheduleID uuid
 // (heartbeat) untuk sekadar mengambil deadline terbaru.
 func (s *ExamService) SyncAnswers(sessionID uuid.UUID, studentUserID uuid.UUID, items []SyncAnswerItem) (int, time.Time, error) {
 	var session domain.ExamSession
-	if err := s.repo.DB.First(&session, "id = ? AND student_id = ?", sessionID, studentUserID).Error; err != nil {
+	if err := s.repo.DB.Preload("Schedule").First(&session, "id = ? AND student_id = ?", sessionID, studentUserID).Error; err != nil {
 		return 0, time.Time{}, errors.New("sesi tidak valid")
 	}
 
@@ -272,8 +274,18 @@ func (s *ExamService) SyncAnswers(sessionID uuid.UUID, studentUserID uuid.UUID, 
 		return 0, session.ServerDeadline, errors.New("waktu pengerjaan telah habis")
 	}
 
+	// Hanya soal dari bank jadwal sesi ini yang diterima; ID lain dilewati agar tabel jawaban
+	// tidak terisi baris sampah dari request yang dimanipulasi.
+	validIDs, err := s.bankQuestionIDs(session.Schedule.BankID, items)
+	if err != nil {
+		return 0, session.ServerDeadline, errors.New("gagal memvalidasi soal")
+	}
+
 	count := 0
 	for _, item := range items {
+		if !validIDs[item.QuestionID] {
+			continue
+		}
 		ans := domain.StudentAnswer{
 			ID:             uuid.New(),
 			SessionID:      sessionID,
@@ -299,6 +311,28 @@ func (s *ExamService) SyncAnswers(sessionID uuid.UUID, studentUserID uuid.UUID, 
 	}
 
 	return count, session.ServerDeadline, nil
+}
+
+// bankQuestionIDs mengembalikan himpunan ID soal pada items yang benar-benar milik bank.
+func (s *ExamService) bankQuestionIDs(bankID *uuid.UUID, items []SyncAnswerItem) (map[uuid.UUID]bool, error) {
+	valid := make(map[uuid.UUID]bool)
+	if bankID == nil || len(items) == 0 {
+		return valid, nil
+	}
+	ids := make([]uuid.UUID, 0, len(items))
+	for _, it := range items {
+		ids = append(ids, it.QuestionID)
+	}
+	var found []uuid.UUID
+	if err := s.repo.DB.Model(&domain.Question{}).
+		Where("bank_id = ? AND id IN ?", *bankID, ids).
+		Pluck("id", &found).Error; err != nil {
+		return nil, err
+	}
+	for _, id := range found {
+		valid[id] = true
+	}
+	return valid, nil
 }
 
 // RecordViolation logs anti-cheat event and blocks session if quota reached.
@@ -354,11 +388,24 @@ func (s *ExamService) RecordViolation(sessionID uuid.UUID, studentUserID uuid.UU
 
 var errSessionNotFound = errors.New("sesi tidak ditemukan")
 
-// SubmitExam finalizes the exam and auto-calculates total score for multiple choice & short answers.
+var errSessionBlocked = errors.New("ujian Anda sedang terkunci. Hubungi pengawas ruangan")
+
+// SubmitExam dipanggil siswa. Sesi yang terkunci tidak bisa dikumpulkan sendiri: pengawas yang
+// memutuskan membuka kunci atau mengumpulkan paksa (ForceSubmit).
+func (s *ExamService) SubmitExam(sessionID uuid.UUID, studentUserID uuid.UUID) (float64, error) {
+	return s.submitExam(sessionID, studentUserID, false)
+}
+
+// ForceSubmit dipanggil pengawas dan boleh mengumpulkan sesi yang terkunci.
+func (s *ExamService) ForceSubmit(sessionID uuid.UUID, studentUserID uuid.UUID) (float64, error) {
+	return s.submitExam(sessionID, studentUserID, true)
+}
+
+// submitExam finalizes the exam and auto-calculates total score for multiple choice & short answers.
 // Sesi "diklaim" lebih dulu dengan UPDATE bersyarat status <> SUBMITTED di dalam transaksi: dari
 // beberapa submit bersamaan (siswa, timer habis, pengawas) hanya satu yang menilai, sisanya
 // mengembalikan nilai yang sudah tersimpan.
-func (s *ExamService) SubmitExam(sessionID uuid.UUID, studentUserID uuid.UUID) (float64, error) {
+func (s *ExamService) submitExam(sessionID uuid.UUID, studentUserID uuid.UUID, allowBlocked bool) (float64, error) {
 	var finalGrade float64
 	err := s.repo.DB.Transaction(func(tx *gorm.DB) error {
 		var session domain.ExamSession
@@ -369,10 +416,17 @@ func (s *ExamService) SubmitExam(sessionID uuid.UUID, studentUserID uuid.UUID) (
 			finalGrade = session.TotalScore
 			return nil
 		}
+		if session.Status == domain.StatusBlocked && !allowBlocked {
+			return errSessionBlocked
+		}
 
 		now := time.Now()
+		claimable := []domain.SessionStatus{domain.StatusInProgress, domain.StatusNotStarted}
+		if allowBlocked {
+			claimable = append(claimable, domain.StatusBlocked)
+		}
 		claim := tx.Model(&domain.ExamSession{}).
-			Where("id = ? AND status <> ?", sessionID, domain.StatusSubmitted).
+			Where("id = ? AND status IN ?", sessionID, claimable).
 			Updates(map[string]interface{}{
 				"status":       domain.StatusSubmitted,
 				"submitted_at": now,
@@ -382,9 +436,12 @@ func (s *ExamService) SubmitExam(sessionID uuid.UUID, studentUserID uuid.UUID) (
 			return claim.Error
 		}
 		if claim.RowsAffected == 0 {
-			// Didahului submit lain; kembalikan nilai yang sudah dihitungnya.
+			// Didahului submit lain (kembalikan nilainya) atau sesi baru saja terkunci.
 			if err := tx.First(&session, "id = ?", sessionID).Error; err != nil {
 				return err
+			}
+			if session.Status == domain.StatusBlocked {
+				return errSessionBlocked
 			}
 			finalGrade = session.TotalScore
 			return nil

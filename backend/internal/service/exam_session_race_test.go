@@ -137,3 +137,47 @@ func TestSyncHeartbeatReturnsExtendedDeadline(t *testing.T) {
 		t.Fatalf("deadline dari sync bergeser %v, ingin sekitar +10 menit", got)
 	}
 }
+
+func TestSyncIgnoresQuestionsOutsideScheduleBank(t *testing.T) {
+	f, exam, _, id := newSessionFixture(t, domain.StatusInProgress, 0)
+	linkBankWithQuestion(t, f, id)
+	var q domain.Question
+	f.db.First(&q, "bank_id = ?", f.bankMathByA)
+
+	foreign := domain.Question{ID: uuid.New(), BankID: f.bankBioByB, QuestionNumber: 1, ContentHTML: "x", CorrectKey: "A", CreatedAt: time.Now()}
+	f.db.Create(&foreign)
+
+	n, _, err := exam.SyncAnswers(id, f.siswa.ID, []SyncAnswerItem{
+		{QuestionID: q.ID, SelectedOption: "B"},
+		{QuestionID: foreign.ID, SelectedOption: "A"},
+		{QuestionID: uuid.New(), SelectedOption: "A"},
+	})
+	if err != nil || n != 1 {
+		t.Fatalf("sync = %d, %v; ingin hanya 1 jawaban dari bank jadwal", n, err)
+	}
+	var rows int64
+	f.db.Model(&domain.StudentAnswer{}).Where("session_id = ?", id).Count(&rows)
+	if rows != 1 {
+		t.Fatalf("baris jawaban = %d, ingin 1", rows)
+	}
+}
+
+func TestBlockedStudentCannotSubmitButProctorCan(t *testing.T) {
+	f, exam, proctor, id := newSessionFixture(t, domain.StatusBlocked, 3)
+	linkBankWithQuestion(t, f, id)
+
+	if _, err := exam.SubmitExam(id, f.siswa.ID); err == nil {
+		t.Fatal("siswa yang terkunci tidak boleh mengumpulkan sendiri")
+	}
+	if s := loadSession(t, f, id); s.Status != domain.StatusBlocked {
+		t.Fatalf("status berubah menjadi %s", s.Status)
+	}
+
+	score, err := proctor.ForceSubmitSession(id)
+	if err != nil || score != 100 {
+		t.Fatalf("force submit pengawas = %v, %v; ingin 100", score, err)
+	}
+	if s := loadSession(t, f, id); s.Status != domain.StatusSubmitted {
+		t.Fatalf("status setelah force submit = %s", s.Status)
+	}
+}
