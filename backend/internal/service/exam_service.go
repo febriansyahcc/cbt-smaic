@@ -157,19 +157,19 @@ func (s *ExamService) StartOrResumeExam(studentUserID uuid.UUID, scheduleID uuid
 		if session.Status == domain.StatusBlocked {
 			return nil, errors.New("ujian Anda terkunci karena kuota pelanggaran terlampaui. Hubungi pengawas ruangan")
 		}
-		// Refresh IP & UserAgent
-		session.ClientIP = clientIP
-		session.UserAgent = userAgent
-		session.UpdatedAt = now
-		s.repo.DB.Save(&session)
+		// Refresh IP & UserAgent tanpa menimpa kolom lain (status, pelanggaran) yang bisa berubah bersamaan.
+		s.repo.DB.Model(&domain.ExamSession{}).Where("id = ?", session.ID).Updates(map[string]interface{}{
+			"client_ip":  clientIP,
+			"user_agent": userAgent,
+			"updated_at": now,
+		})
 	}
 
-	// Check deadline
+	// Waktu habis: kumpulkan dan nilai jawaban yang sudah tersinkron, bukan sekadar menandai selesai.
 	if now.After(session.ServerDeadline) {
-		session.Status = domain.StatusSubmitted
-		nowVal := now
-		session.SubmittedAt = &nowVal
-		s.repo.DB.Save(&session)
+		if _, err := s.SubmitExam(session.ID, studentUserID); err != nil {
+			return nil, err
+		}
 		return nil, errors.New("waktu pengerjaan ujian telah habis")
 	}
 
@@ -299,135 +299,179 @@ func (s *ExamService) SyncAnswers(sessionID uuid.UUID, studentUserID uuid.UUID, 
 	return count, nil
 }
 
-// RecordViolation logs anti-cheat event and blocks session if quota reached
+// RecordViolation logs anti-cheat event and blocks session if quota reached.
+// Penambahan hitungan dan penguncian dilakukan dengan UPDATE bersyarat di satu transaksi, sehingga
+// laporan yang datang bersamaan tidak saling menghilangkan dan tidak menimpa sesi yang sudah dikumpulkan.
 func (s *ExamService) RecordViolation(sessionID uuid.UUID, studentUserID uuid.UUID, eventType, details string) (int, bool, error) {
 	var session domain.ExamSession
-	if err := s.repo.DB.Preload("Schedule").First(&session, "id = ? AND student_id = ?", sessionID, studentUserID).Error; err != nil {
-		return 0, false, errors.New("sesi tidak ditemukan")
-	}
-
-	if session.Status == domain.StatusSubmitted {
-		return session.ActiveViolations(), false, nil
-	}
-
-	// Insert log
-	vLog := domain.ViolationLog{
-		ID:         uuid.New(),
-		SessionID:  sessionID,
-		EventType:  eventType,
-		Details:    details,
-		OccurredAt: time.Now(),
-	}
-	s.repo.DB.Create(&vLog)
-
-	session.ViolationCount++
 	isBlocked := false
+	err := s.repo.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Preload("Schedule").First(&session, "id = ? AND student_id = ?", sessionID, studentUserID).Error; err != nil {
+			return errSessionNotFound
+		}
+		if session.Status == domain.StatusSubmitted {
+			return nil
+		}
 
-	if session.ActiveViolations() >= session.Schedule.MaxViolations {
-		session.Status = domain.StatusBlocked
-		isBlocked = true
+		if err := tx.Create(&domain.ViolationLog{
+			ID:         uuid.New(),
+			SessionID:  sessionID,
+			EventType:  eventType,
+			Details:    details,
+			OccurredAt: time.Now(),
+		}).Error; err != nil {
+			return err
+		}
+
+		res := tx.Model(&domain.ExamSession{}).
+			Where("id = ? AND status <> ?", sessionID, domain.StatusSubmitted).
+			Updates(map[string]interface{}{
+				"violation_count": gorm.Expr("violation_count + 1"),
+				"updated_at":      time.Now(),
+			})
+		if res.Error != nil {
+			return res.Error
+		}
+
+		res = tx.Model(&domain.ExamSession{}).
+			Where("id = ? AND status = ? AND violation_count - violation_base >= ?",
+				sessionID, domain.StatusInProgress, session.Schedule.MaxViolations).
+			Update("status", domain.StatusBlocked)
+		if res.Error != nil {
+			return res.Error
+		}
+		isBlocked = res.RowsAffected > 0
+
+		return tx.First(&session, "id = ?", sessionID).Error
+	})
+	if err != nil {
+		return 0, false, err
 	}
-	s.repo.DB.Save(&session)
-
 	return session.ActiveViolations(), isBlocked, nil
 }
 
-// SubmitExam finalizes the exam and auto-calculates total score for multiple choice & short answers
+var errSessionNotFound = errors.New("sesi tidak ditemukan")
+
+// SubmitExam finalizes the exam and auto-calculates total score for multiple choice & short answers.
+// Sesi "diklaim" lebih dulu dengan UPDATE bersyarat status <> SUBMITTED di dalam transaksi: dari
+// beberapa submit bersamaan (siswa, timer habis, pengawas) hanya satu yang menilai, sisanya
+// mengembalikan nilai yang sudah tersimpan.
 func (s *ExamService) SubmitExam(sessionID uuid.UUID, studentUserID uuid.UUID) (float64, error) {
-	var session domain.ExamSession
-	if err := s.repo.DB.Preload("Schedule").First(&session, "id = ? AND student_id = ?", sessionID, studentUserID).Error; err != nil {
-		return 0, errors.New("sesi tidak ditemukan")
-	}
-
-	if session.Status == domain.StatusSubmitted {
-		return session.TotalScore, nil
-	}
-
-	// Fetch all questions in bank with correct keys
-	var questions []domain.Question
-	if err := s.repo.DB.Where("bank_id = ?", session.Schedule.BankID).Find(&questions).Error; err != nil {
-		return 0, errors.New("gagal memuat kunci jawaban")
-	}
-
-	// Fetch student answers
-	var answers []domain.StudentAnswer
-	s.repo.DB.Where("session_id = ?", session.ID).Find(&answers)
-	answerMap := make(map[string]domain.StudentAnswer)
-	for _, a := range answers {
-		answerMap[a.QuestionID.String()] = a
-	}
-
-	var earnedScore float64 = 0
-	var totalWeight float64 = 0
-
-	for _, q := range questions {
-		totalWeight += q.ScoreWeight
-		studentAns, exists := answerMap[q.ID.String()]
-		var awarded float64 = 0
-		isGraded := true
-
-		qType := q.Type
-		if qType == "" {
-			qType = domain.TypeMultipleChoice
+	var finalGrade float64
+	err := s.repo.DB.Transaction(func(tx *gorm.DB) error {
+		var session domain.ExamSession
+		if err := tx.Preload("Schedule").First(&session, "id = ? AND student_id = ?", sessionID, studentUserID).Error; err != nil {
+			return errSessionNotFound
+		}
+		if session.Status == domain.StatusSubmitted {
+			finalGrade = session.TotalScore
+			return nil
 		}
 
-		switch qType {
-		case domain.TypeShortAnswer:
-			rawAnswer := ""
+		now := time.Now()
+		claim := tx.Model(&domain.ExamSession{}).
+			Where("id = ? AND status <> ?", sessionID, domain.StatusSubmitted).
+			Updates(map[string]interface{}{
+				"status":       domain.StatusSubmitted,
+				"submitted_at": now,
+				"updated_at":   now,
+			})
+		if claim.Error != nil {
+			return claim.Error
+		}
+		if claim.RowsAffected == 0 {
+			// Didahului submit lain; kembalikan nilai yang sudah dihitungnya.
+			if err := tx.First(&session, "id = ?", sessionID).Error; err != nil {
+				return err
+			}
+			finalGrade = session.TotalScore
+			return nil
+		}
+
+		// Fetch all questions in bank with correct keys
+		var questions []domain.Question
+		if err := tx.Where("bank_id = ?", session.Schedule.BankID).Find(&questions).Error; err != nil {
+			return errors.New("gagal memuat kunci jawaban")
+		}
+
+		// Fetch student answers
+		var answers []domain.StudentAnswer
+		if err := tx.Where("session_id = ?", session.ID).Find(&answers).Error; err != nil {
+			return errors.New("gagal memuat jawaban siswa")
+		}
+		answerMap := make(map[string]domain.StudentAnswer)
+		for _, a := range answers {
+			answerMap[a.QuestionID.String()] = a
+		}
+
+		var earnedScore float64 = 0
+		var totalWeight float64 = 0
+
+		for _, q := range questions {
+			totalWeight += q.ScoreWeight
+			studentAns, exists := answerMap[q.ID.String()]
+			awarded, isGraded := gradeAnswer(q, studentAns, exists)
+			earnedScore += awarded
+
 			if exists {
-				rawAnswer = studentAns.AnswerText
-				if rawAnswer == "" {
-					rawAnswer = studentAns.SelectedOption
+				scoreVal := awarded
+				if err := tx.Model(&domain.StudentAnswer{}).
+					Where("id = ?", studentAns.ID).
+					Updates(map[string]interface{}{
+						"score_awarded": &scoreVal,
+						"is_graded":     isGraded,
+					}).Error; err != nil {
+					return err
 				}
 			}
-			normalizedStudent := strings.ToLower(strings.TrimSpace(rawAnswer))
-			if normalizedStudent != "" && strings.TrimSpace(q.CorrectKey) != "" {
-				keys := strings.Split(q.CorrectKey, "|")
-				for _, k := range keys {
-					if strings.ToLower(strings.TrimSpace(k)) == normalizedStudent {
-						awarded = q.ScoreWeight
-						earnedScore += q.ScoreWeight
-						break
-					}
-				}
-			}
-		case domain.TypeEssay:
-			// Essay is graded manually by teacher
-			isGraded = false
-			awarded = 0
-		default: // Multiple Choice
-			studentChoice := ""
-			if exists {
-				studentChoice = studentAns.SelectedOption
-			}
-			if studentChoice != "" && strings.EqualFold(studentChoice, q.CorrectKey) {
-				awarded = q.ScoreWeight
-				earnedScore += q.ScoreWeight
-			}
 		}
 
-		if exists {
-			scoreVal := awarded
-			s.repo.DB.Model(&domain.StudentAnswer{}).
-				Where("id = ?", studentAns.ID).
-				Updates(map[string]interface{}{
-					"score_awarded": &scoreVal,
-					"is_graded":     isGraded,
-				})
+		if totalWeight > 0 {
+			finalGrade = (earnedScore / totalWeight) * 100.0
 		}
+
+		return tx.Model(&domain.ExamSession{}).Where("id = ?", sessionID).Updates(map[string]interface{}{
+			"total_score": finalGrade,
+			"max_score":   100.0,
+		}).Error
+	})
+	if err != nil {
+		return 0, err
 	}
-
-	finalGrade := 0.0
-	if totalWeight > 0 {
-		finalGrade = (earnedScore / totalWeight) * 100.0
-	}
-
-	now := time.Now()
-	session.Status = domain.StatusSubmitted
-	session.SubmittedAt = &now
-	session.TotalScore = finalGrade
-	session.MaxScore = 100.0
-	s.repo.DB.Save(&session)
-
 	return finalGrade, nil
+}
+
+// gradeAnswer menilai satu jawaban. Esai dinilai manual oleh guru (isGraded = false).
+func gradeAnswer(q domain.Question, studentAns domain.StudentAnswer, exists bool) (awarded float64, isGraded bool) {
+	qType := q.Type
+	if qType == "" {
+		qType = domain.TypeMultipleChoice
+	}
+
+	switch qType {
+	case domain.TypeShortAnswer:
+		rawAnswer := ""
+		if exists {
+			rawAnswer = studentAns.AnswerText
+			if rawAnswer == "" {
+				rawAnswer = studentAns.SelectedOption
+			}
+		}
+		normalizedStudent := strings.ToLower(strings.TrimSpace(rawAnswer))
+		if normalizedStudent != "" && strings.TrimSpace(q.CorrectKey) != "" {
+			for _, k := range strings.Split(q.CorrectKey, "|") {
+				if strings.ToLower(strings.TrimSpace(k)) == normalizedStudent {
+					return q.ScoreWeight, true
+				}
+			}
+		}
+		return 0, true
+	case domain.TypeEssay:
+		return 0, false
+	default: // Multiple Choice
+		if exists && studentAns.SelectedOption != "" && strings.EqualFold(studentAns.SelectedOption, q.CorrectKey) {
+			return q.ScoreWeight, true
+		}
+		return 0, true
+	}
 }
