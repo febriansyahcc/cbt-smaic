@@ -37,6 +37,10 @@ func main() {
 		AppName:      "CBT High School Engine v1.0",
 		BodyLimit:    20 * 1024 * 1024, // 20 MB for excel/media uploads
 		ServerHeader: "CBT-Go-Engine",
+		// Di belakang nginx, c.IP() memakai X-Real-IP, tetapi hanya dari proxy tepercaya.
+		ProxyHeader:             "X-Real-IP",
+		EnableTrustedProxyCheck: true,
+		TrustedProxies:          middleware.TrustedProxies(),
 	})
 
 	// Global Middlewares
@@ -96,7 +100,7 @@ func main() {
 
 	// Public Auth Routes
 	auth := api.Group("/auth")
-	auth.Post("/login", handlers.HandleLogin)
+	auth.Post("/login", middleware.LoginRateLimiter(), handlers.HandleLogin)
 	auth.Get("/me", middleware.AuthRequired(db), handlers.HandleGetMe)
 	auth.Post("/logout", middleware.AuthRequired(db), handlers.HandleLogout)
 
