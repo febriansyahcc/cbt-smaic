@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
+	"gorm.io/gorm"
 )
 
 type ProctorService struct {
@@ -193,9 +194,64 @@ func (s *ProctorService) UnlockStudentSession(sessionID uuid.UUID) error {
 		return errors.New("sesi tidak ditemukan")
 	}
 
-	session.Status = domain.StatusInProgress
-	// Keep violation count for audit, but reset lockout
-	return s.repo.DB.Save(&session).Error
+	if session.Status == domain.StatusSubmitted {
+		return errors.New("sesi ini sudah dikumpulkan dan tidak dapat dibuka kembali")
+	}
+	if session.Status != domain.StatusBlocked {
+		return nil // tidak sedang terkunci
+	}
+
+	// Syarat status di WHERE mencegah menimpa sesi yang baru saja dikumpulkan.
+	res := s.repo.DB.Model(&domain.ExamSession{}).
+		Where("id = ? AND status = ?", sessionID, domain.StatusBlocked).
+		Updates(reopenSessionFields())
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errors.New("status sesi telah berubah, muat ulang data")
+	}
+
+	_ = s.repo.DB.Create(&domain.ViolationLog{
+		ID:         uuid.New(),
+		SessionID:  sessionID,
+		EventType:  "UNLOCKED",
+		Details:    fmt.Sprintf("Kunci dibuka pengawas (total pelanggaran %d)", session.ViolationCount),
+		OccurredAt: time.Now(),
+	}).Error
+	return nil
+}
+
+// reopenSessionFields membuka sesi terkunci. Pelanggaran yang sudah terjadi diputihkan lewat
+// ViolationBase sehingga siswa kembali mendapat kuota penuh, sementara ViolationCount tetap
+// menyimpan total untuk audit pengawas.
+// Nilai dasar diambil dari kolom itu sendiri agar pelanggaran yang tercatat bersamaan tidak terlewat.
+func reopenSessionFields() map[string]interface{} {
+	return map[string]interface{}{
+		"status":         domain.StatusInProgress,
+		"violation_base": gorm.Expr("violation_count"),
+		"updated_at":     time.Now(),
+	}
+}
+
+// extendSessionDeadline memperpanjang deadline sesi dan membuka kuncinya bila terkunci. Hanya kolom
+// terkait yang ditulis, sehingga hitungan pelanggaran atau status submit yang berubah bersamaan aman.
+func extendSessionDeadline(db *gorm.DB, session domain.ExamSession, extraMinutes int, now time.Time) error {
+	deadline := session.ServerDeadline
+	if deadline.Before(now) {
+		deadline = now
+	}
+	deadline = deadline.Add(time.Duration(extraMinutes) * time.Minute)
+
+	if err := db.Model(&domain.ExamSession{}).Where("id = ?", session.ID).Updates(map[string]interface{}{
+		"server_deadline": deadline,
+		"updated_at":      now,
+	}).Error; err != nil {
+		return err
+	}
+	return db.Model(&domain.ExamSession{}).
+		Where("id = ? AND status = ?", session.ID, domain.StatusBlocked).
+		Updates(reopenSessionFields()).Error
 }
 
 // ResetStudentDeviceSession resets session token to allow login on a replacement smartphone or PC
@@ -221,17 +277,7 @@ func (s *ProctorService) ExtendTimeSession(sessionID uuid.UUID, extraMinutes int
 	}
 
 	now := time.Now()
-	if session.ServerDeadline.Before(now) {
-		session.ServerDeadline = now.Add(time.Duration(extraMinutes) * time.Minute)
-	} else {
-		session.ServerDeadline = session.ServerDeadline.Add(time.Duration(extraMinutes) * time.Minute)
-	}
-
-	if session.Status == domain.StatusBlocked {
-		session.Status = domain.StatusInProgress
-	}
-
-	if err := s.repo.DB.Save(&session).Error; err != nil {
+	if err := extendSessionDeadline(s.repo.DB, session, extraMinutes, now); err != nil {
 		return err
 	}
 
@@ -266,15 +312,7 @@ func (s *ProctorService) ExtendTimeAllSchedule(scheduleID uuid.UUID, extraMinute
 	now := time.Now()
 	count := 0
 	for _, sess := range sessions {
-		if sess.ServerDeadline.Before(now) {
-			sess.ServerDeadline = now.Add(time.Duration(extraMinutes) * time.Minute)
-		} else {
-			sess.ServerDeadline = sess.ServerDeadline.Add(time.Duration(extraMinutes) * time.Minute)
-		}
-		if sess.Status == domain.StatusBlocked {
-			sess.Status = domain.StatusInProgress
-		}
-		if err := s.repo.DB.Save(&sess).Error; err == nil {
+		if err := extendSessionDeadline(s.repo.DB, sess, extraMinutes, now); err == nil {
 			count++
 			details := fmt.Sprintf("+%d Menit (Massal)", extraMinutes)
 			if reason != "" {
@@ -302,7 +340,7 @@ func (s *ProctorService) ForceSubmitSession(sessionID uuid.UUID) (float64, error
 		return 0, errors.New("sesi tidak ditemukan")
 	}
 	examService := NewExamService(s.repo)
-	return examService.SubmitExam(sessionID, session.StudentID)
+	return examService.ForceSubmit(sessionID, session.StudentID)
 }
 
 // GetViolationLogs returns the log of cheat attempts and supervisor interventions for a session

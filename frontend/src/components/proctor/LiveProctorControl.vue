@@ -911,6 +911,8 @@ const getViolationBadge = (type) => {
   switch (type) {
     case 'TIME_EXTENDED':
       return 'bg-indigo-100 text-indigo-800'
+    case 'UNLOCKED':
+      return 'bg-emerald-100 text-emerald-800'
     case 'BLUR_WINDOW':
     case 'TAB_SWITCH':
       return 'bg-amber-100 text-amber-800'
@@ -925,6 +927,8 @@ const formatViolationType = (type) => {
   switch (type) {
     case 'TIME_EXTENDED':
       return '⏱️ Penambahan Waktu'
+    case 'UNLOCKED':
+      return '🔓 Kunci Dibuka Pengawas'
     case 'BLUR_WINDOW':
       return '🔲 Pindah Jendela / Fokus'
     case 'TAB_SWITCH':

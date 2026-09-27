@@ -97,7 +97,7 @@
   <thead><tr><th>Bagian</th><th>Fungsinya</th></tr></thead>
   <tbody>
     <tr><td class="key">Jam hitung mundur</td><td>Sisa waktu Anda. Mengikuti jam server, jadi mengubah jam HP tidak berpengaruh. Berubah merah saat sisa waktu kurang dari 5 menit. <b>Saat waktu habis, jawaban otomatis dikumpulkan.</b></td></tr>
-    <tr><td class="key">Titik status</td><td><b>Hijau</b>: jawaban sudah tersimpan di server. <b>Kuning</b>: sedang dikirim atau menunggu. <b>Merah</b>: jaringan putus, jawaban disimpan di HP dulu.</td></tr>
+    <tr><td class="key">Titik status</td><td><b>Hijau</b>: jawaban sudah tersimpan di server. <b>Kuning</b>: sedang dikirim atau menunggu. <b>Merah</b>: jaringan putus, jawaban disimpan di HP dulu. <b>Merah berkedip ("Gagal Sync")</b>: server menolak jawaban, misalnya waktu habis. Segera lapor pengawas.</td></tr>
     <tr><td class="key">Selesai</td><td>Membuka konfirmasi untuk mengumpulkan ujian (Bab 5).</td></tr>
     <tr><td class="key">A- &nbsp;A&nbsp; A+</td><td>Memperkecil atau memperbesar huruf soal.</td></tr>
     <tr><td class="key">Sebelumnya / Berikutnya</td><td>Pindah ke soal sebelum atau sesudahnya.</td></tr>
@@ -113,14 +113,13 @@
   <figure><div class="phone"><img src="img/siswa/07-kisi-soal.png" alt="Kisi nomor soal"></div><figcaption><b>Kisi nomor soal</b></figcaption></figure>
 </div>
 <ul>
-  <li><b>Pilihan Ganda:</b> ketuk salah satu pilihan. Untuk mengganti jawaban, ketuk pilihan lain.</li>
+  <li><b>Pilihan Ganda:</b> ketuk salah satu pilihan. Untuk mengganti jawaban, ketuk pilihan lain. Jawaban langsung tersimpan tanpa tombol simpan.</li>
   <li><b>Jawaban Singkat:</b> ketik jawaban di kolom yang tersedia. Huruf besar atau kecil tidak berpengaruh.</li>
   <li><b>Essay / Uraian:</b> tulis jawaban lengkap di kolom teks. Soal essay dinilai guru setelah ujian.</li>
 </ul>
-<p>Setiap jawaban langsung tersimpan. Tidak ada tombol simpan.</p>
 
 <h3>Membaca kisi soal</h3>
-<p>Ketuk <span class="ui">Soal</span> di bawah layar. Kotak <b>hijau</b> berarti sudah dijawab (huruf di bawah nomor adalah jawaban Anda), <b>oranye</b> berarti ragu-ragu, dan <b>abu-abu</b> berarti belum dijawab. Ketuk nomor untuk pindah ke soal itu, lalu ketuk <span class="ui">Tutup Kisi Soal</span>.</p>
+<p>Ketuk <span class="ui">Soal</span>. Kotak <b>hijau</b> = sudah dijawab (beserta hurufnya), <b>oranye</b> = ragu-ragu, <b>abu-abu</b> = belum dijawab. Ketuk nomor untuk pindah soal.</p>
 
 
 <!-- ================= BAB 4 ================= -->
@@ -149,7 +148,7 @@
 
 <div class="notes">
   <div class="note warn"><span class="label">Perhatian</span>Waktu ujian tetap berjalan selama layar terkunci.</div>
-  <div class="note danger"><span class="label">Penting</span>Jumlah pelanggaran tidak kembali ke nol setelah kunci dibuka. Satu pelanggaran lagi akan langsung mengunci ujian kembali.</div>
+  <div class="note info"><span class="label">Info</span>Setelah kunci dibuka, hitungan pelanggaran dimulai lagi dari nol. Semua pelanggaran sebelumnya tetap tercatat dan dapat dilihat pengawas.</div>
 </div>
 
 <!-- ================= BAB 5 ================= -->
@@ -181,9 +180,8 @@
 <ol class="steps">
   <li>Lapor ke pengawas.</li>
   <li>Masuk kembali di perangkat pengganti dengan No. Ujian dan password kartu yang sama. Perangkat lama otomatis keluar.</li>
-  <li>Isi token yang sama, lalu ketuk <span class="ui">Mulai Kerjakan Ujian</span>. Ujian berlanjut dengan sisa waktu dan jawaban yang sudah terkirim.</li>
+  <li>Isi token yang sama, lalu ketuk <span class="ui">Mulai Kerjakan Ujian</span>. Ujian berlanjut dengan sisa waktu dan jawaban yang sudah terkirim. Jawaban yang belum terkirim dari HP lama tidak ikut pindah.</li>
 </ol>
-<div class="note warn"><span class="label">Perhatian</span>Jawaban yang belum sempat terkirim dari HP lama (saat titik status belum hijau) tidak ikut pindah ke perangkat baru.</div>
 
 <h3>Pesan yang mungkin muncul</h3>
 <table>
@@ -197,6 +195,7 @@
     <tr><td class="msg">ujian Anda terkunci karena kuota pelanggaran terlampaui</td><td>Panggil pengawas untuk membuka kunci (Bab 4).</td></tr>
     <tr><td class="msg">ujian ini telah Anda selesaikan dan kumpulkan</td><td>Ujian sudah dikumpulkan dan tidak bisa dibuka lagi.</td></tr>
     <tr><td class="msg">Akun Anda telah digunakan untuk login di perangkat lain</td><td>Akun Anda baru saja dipakai login di perangkat lain. Segera lapor pengawas.</td></tr>
+    <tr><td class="msg">Terlalu banyak percobaan login yang gagal</td><td>Login salah 10 kali dalam 10 menit. Tunggu 10 menit, lalu masuk dengan No. Ujian dan password yang benar, atau lapor pengawas.</td></tr>
     <tr><td class="msg">Sesi login Anda telah diakhiri</td><td>Pengawas atau admin mengakhiri sesi Anda. Masuk kembali, lalu isi token lagi.</td></tr>
   </tbody>
 </table>

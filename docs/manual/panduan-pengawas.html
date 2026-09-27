@@ -122,7 +122,7 @@
 <h3>Mengapa siswa terkunci</h3>
 <p>Sistem mencatat pelanggaran setiap kali siswa pindah ke aplikasi atau tab lain, menarik status bar atau membuka layar terpisah, atau keluar dari layar penuh. Jika jumlahnya mencapai batas pada jadwal (misalnya 3 kali), ujian terkunci otomatis.</p>
 
-<figure class="modal wide"><img class="screen" src="img/pengawas/04-log-pelanggaran-crop.png" alt="Catatan pelanggaran siswa"><figcaption><b>Catatan pelanggaran</b> berisi jenis dan jam kejadian</figcaption></figure>
+<figure class="modal"><img class="screen" src="img/pengawas/04-log-pelanggaran-crop.png" alt="Catatan pelanggaran siswa"><figcaption><b>Catatan pelanggaran</b> berisi jenis dan jam kejadian</figcaption></figure>
 
 <ol class="steps">
   <li>Klik filter <span class="ui">Terblokir</span>. Hanya siswa yang terkunci yang tampil.</li>
@@ -133,7 +133,7 @@
 
 <div class="notes">
   <div class="note warn"><span class="label">Perhatian</span>Waktu ujian tetap berjalan selama siswa terkunci. Bila perlu, beri tambahan waktu dengan tombol <b>+Waktu</b> (Bab 5).</div>
-  <div class="note danger"><span class="label">Penting</span>Jumlah pelanggaran tidak kembali ke nol. Satu pelanggaran lagi langsung mengunci ujian kembali. Sampaikan hal ini kepada siswa.</div>
+  <div class="note info"><span class="label">Info</span>Setelah dibuka, siswa mendapat kuota pelanggaran penuh lagi. Catatan pelanggaran lama tetap tersimpan, dan setiap pembukaan kunci ikut tercatat di log siswa.</div>
 </div>
 
 <!-- ================= BAB 5 ================= -->
@@ -219,7 +219,9 @@
     <tr><td class="key">Kartu peserta hilang atau tertinggal</td><td>Hubungi admin kurikulum. Admin dapat melihat No. Ujian dan password siswa di menu Cetak Kartu Peserta dan mencetak ulang kartunya.</td></tr>
     <tr><td class="key">Password kartu ditolak</td><td>Pastikan No. Ujian diketik lengkap dengan tanda hubung dan event ujian berstatus aktif. Kartu dari event yang sudah diarsipkan tidak berlaku.</td></tr>
     <tr><td class="key">Tombol tindakan abu-abu</td><td>Bapak/Ibu tidak ditugaskan pada jadwal itu. Minta admin menambahkan Bapak/Ibu sebagai pengawas.</td></tr>
-    <tr><td class="key">Siswa terkunci lagi setelah dibuka</td><td>Jumlah pelanggaran tidak kembali ke nol, jadi satu pelanggaran baru langsung mengunci ujian. Periksa catatan, lalu putuskan apakah kunci dibuka lagi.</td></tr>
+    <tr><td class="key">Siswa terkunci lagi setelah dibuka</td><td>Siswa kembali mencapai batas pelanggaran. Periksa catatannya, termasuk kapan kunci sebelumnya dibuka, lalu putuskan apakah kunci dibuka lagi.</td></tr>
+    <tr><td class="key">"Terlalu banyak percobaan login"</td><td>Login gagal 10 kali dalam 10 menit dari perangkat yang sama untuk No. Ujian itu. Minta siswa menunggu 10 menit dan mencocokkan kembali No. Ujian dan password dengan kartunya.</td></tr>
+    <tr><td class="key">Titik status siswa merah berkedip ("Gagal Sync")</td><td>Server menolak jawaban siswa, misalnya waktu sudah habis atau sesi terkunci. Periksa status siswa di layar pengawasan.</td></tr>
     <tr><td class="key">Siswa kehilangan jaringan</td><td>Siswa tetap bisa mengerjakan; jawaban disimpan di HP dan terkirim saat jaringan kembali. Pastikan siswa tidak menutup browser.</td></tr>
     <tr><td class="key">Siswa keluar sendiri dari akun</td><td>Siswa masuk ulang, pilih jadwal, dan isi token yang sama. Ujian berlanjut.</td></tr>
     <tr><td class="key">Waktu ujian habis</td><td>Jawaban siswa otomatis dikumpulkan dan status berubah menjadi Selesai.</td></tr>

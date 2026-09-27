@@ -23,10 +23,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useExamStore } from '../../stores/exam'
 import { useAntiCheat } from '../../composables/useAntiCheat'
+import { useDialog } from '../../composables/useDialog'
 
 import ExamTopbar from '../../components/exam/ExamTopbar.vue'
 import ExamQuestionCard from '../../components/exam/ExamQuestionCard.vue'
@@ -42,6 +43,16 @@ const warningMsg = ref('')
 useAntiCheat(examStore, (msg) => {
   warningMsg.value = msg
 })
+
+// Penolakan sync dari server (waktu habis, sesi terkunci) tidak boleh diam-diam: beri tahu siswa
+// sekali setiap pesan baru muncul. Indikator di topbar tetap merah sampai sync berikutnya berhasil.
+const { toast: showToast } = useDialog()
+watch(
+  () => examStore.syncError,
+  (msg) => {
+    if (msg) showToast(`Jawaban belum tersimpan di server: ${msg}. Segera lapor ke pengawas.`, 'danger', 8000)
+  }
+)
 
 onMounted(() => {
   examStore.listenNetwork()
