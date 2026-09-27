@@ -134,6 +134,7 @@ type CreateScheduleRequest struct {
 	RandomizeQuestions *bool      `json:"randomize_questions"`
 	RandomizeOptions   *bool      `json:"randomize_options"`
 	IsMakeup           bool       `json:"is_makeup"`
+	ParentScheduleID   *uuid.UUID `json:"parent_schedule_id"`
 }
 
 type UpdateScheduleRequest struct {
@@ -210,6 +211,24 @@ func (h *Handlers) HandleCreateSchedule(c *fiber.Ctx) error {
 		}
 	}
 
+	// Jika parent_id diisi, jadwal ini adalah susulan dari jadwal induk
+	if req.ParentScheduleID != nil && *req.ParentScheduleID != uuid.Nil {
+		req.IsMakeup = true
+		// Ambil kelas & mapel dari jadwal induk jika tidak diisi
+		var parent domain.ExamSchedule
+		if err := h.repo.DB.First(&parent, "id = ?", *req.ParentScheduleID).Error; err == nil {
+			if req.ClassID == uuid.Nil {
+				req.ClassID = parent.ClassRoomID
+			}
+			if targetSubjectID == nil {
+				targetSubjectID = parent.SubjectID
+			}
+			if targetEventID == nil {
+				targetEventID = parent.EventID
+			}
+		}
+	}
+
 	st, et := parseScheduleTimes(req.ExamDate, req.StartTime, req.EndTime, duration)
 	now := time.Now()
 
@@ -241,6 +260,7 @@ func (h *Handlers) HandleCreateSchedule(c *fiber.Ctx) error {
 		RandomizeOptions:   randO,
 		IsActive:           true,
 		IsMakeup:           req.IsMakeup,
+		ParentScheduleID:   req.ParentScheduleID,
 		CreatedAt:          now,
 	}
 

@@ -15,8 +15,17 @@
       <form @submit.prevent="submitScheduleForm" class="flex flex-col flex-1 overflow-hidden min-h-0">
         <!-- Scrollable Body Content -->
         <div class="p-6 space-y-4 text-xs overflow-y-auto flex-1">
+          <!-- Banner: Jadwal Susulan dari Induk -->
+          <div v-if="scheduleForm.parent_schedule_id" class="p-3 bg-orange-50 border border-orange-200 rounded-2xl flex items-start gap-2.5">
+            <span class="text-orange-500 text-base shrink-0">↩</span>
+            <div>
+              <div class="text-xs font-bold text-orange-800">Jadwal Ujian Susulan</div>
+              <div class="text-[11px] text-orange-600 mt-0.5">Kelas dan mata pelajaran otomatis diambil dari jadwal induk. Pilih siswa yang akan mengikuti ujian susulan.</div>
+            </div>
+          </div>
+
           <!-- 1. Alokasi Kelas & Mata Pelajaran (Paling Atas) -->
-          <div>
+          <div v-if="!isMakeupFormLocked">
             <div class="flex items-center justify-between mb-1">
               <label class="block font-bold text-slate-700">Pilih Kelas & Mata Pelajaran:</label>
               <span
@@ -86,6 +95,9 @@
                 Buka Menu Kelas Mapel →
               </button>
             </div>
+          </div>
+          <div v-else class="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700">
+            <span class="font-bold">Kelas &amp; Mapel:</span> diambil dari jadwal induk secara otomatis.
           </div>
 
           <!-- 2. Judul Sesi (Mengikuti Pilihan Kelas & Mapel di Atas) -->
@@ -236,7 +248,8 @@
                 <span class="text-xs font-bold text-slate-700">Jadwal Susulan</span>
                 <p class="text-[11px] text-slate-500 mt-0.5">Hanya siswa terpilih yang dapat mengikuti ujian ini</p>
               </div>
-              <input v-model="scheduleForm.is_makeup" type="checkbox" class="w-4 h-4 text-orange-500 rounded" />
+              <input v-model="scheduleForm.is_makeup" type="checkbox" class="w-4 h-4 text-orange-500 rounded"
+                :disabled="!!scheduleForm.parent_schedule_id" />
             </label>
           </div>
 
@@ -288,7 +301,7 @@
           </button>
           <button
             type="submit"
-            :disabled="!isEditSchedule && availableClassSubjects.length === 0"
+            :disabled="!isEditSchedule && !isMakeupFormLocked && availableClassSubjects.length === 0"
             class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xs shadow-xs transition cursor-pointer"
           >
             {{ isEditSchedule ? 'Simpan Perubahan' : 'Terbitkan Jadwal' }}
@@ -752,6 +765,7 @@ const {
   formatScheduleTimeRange,
   groupedAvailableClassSubjects,
   isEditSchedule,
+  isMakeupFormLocked,
   isStudentSelected,
   loadMakeupStudents,
   loadingMakeupStudents,

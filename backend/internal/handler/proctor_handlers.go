@@ -282,6 +282,23 @@ func (h *Handlers) HandleExportGradesExcel(c *fiber.Ctx) error {
 	return file.Write(c.Response().BodyWriter())
 }
 
+func (h *Handlers) HandleExportMergedGradesExcel(c *fiber.Ctx) error {
+	scheduleID, err := uuid.Parse(c.Params("schedule_id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid schedule ID")
+	}
+	if h.denyScheduleExport(c, scheduleID) {
+		return nil
+	}
+	file, filename, err := h.proctorService.ExportMergedGrades(scheduleID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	}
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	return file.Write(c.Response().BodyWriter())
+}
+
 func (h *Handlers) HandleExportBeritaAcaraPDF(c *fiber.Ctx) error {
 	scheduleID, err := uuid.Parse(c.Params("schedule_id"))
 	if err != nil {

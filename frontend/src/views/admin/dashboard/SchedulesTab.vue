@@ -483,6 +483,30 @@
                     </svg>
                   </button>
 
+                  <!-- Buat Susulan Button -->
+                  <button
+                    v-if="canManageSchedules && !sch.is_makeup"
+                    @click="openCreateMakeupSchedule(sch)"
+                    class="p-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl transition active:scale-95 cursor-pointer"
+                    title="Buat Jadwal Ujian Susulan"
+                  >
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+
+                  <!-- Export Gabungan Button -->
+                  <button
+                    v-if="canReadPeople && !sch.is_makeup"
+                    @click="downloadMergedExcel(sch.id)"
+                    class="p-1.5 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 rounded-xl transition cursor-pointer"
+                    title="Unduh Rekap Nilai Gabungan (Reguler + Susulan)"
+                  >
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </button>
+
                   <!-- Delete Button -->
                   <button
                     v-if="canManageSchedules"
@@ -582,6 +606,7 @@
 </template>
 
 <script setup>
+import api from '../../../services/api'
 import { useDashboard } from './context'
 
 const {
@@ -604,6 +629,7 @@ const {
   formatScheduleTimeRange,
   isAllPaginatedSelected,
   openCreateSchedule,
+  openCreateMakeupSchedule,
   openEditSchedule,
   openLinkBankModal,
   openPrintModal,
@@ -627,5 +653,20 @@ const {
   toggleSelectAllPaginatedSchedules,
   totalSchedulePages,
   totalSchedulesCount,
+  showToast,
 } = useDashboard()
+
+const downloadMergedExcel = async (scheduleId) => {
+  try {
+    const res = await api.get(`/api/v1/proctor/reports/excel-merged/${scheduleId}`, { responseType: 'blob' })
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Nilai_Gabungan_${scheduleId}.xlsx`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  } catch (e) {
+    showToast('Gagal mengunduh rekap nilai gabungan.', 'error')
+  }
+}
 </script>

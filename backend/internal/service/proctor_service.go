@@ -63,9 +63,22 @@ func (s *ProctorService) GetLiveProctorData(scheduleID uuid.UUID) (*LiveProctorS
 		return nil, errors.New("jadwal tidak ditemukan")
 	}
 
-	// Fetch all students enrolled in this class
+	// Fetch students: for makeup schedules, only load whitelisted students
 	var studentProfiles []domain.StudentProfile
-	s.repo.DB.Preload("User").Where("class_room_id = ?", schedule.ClassRoomID).Find(&studentProfiles)
+	if schedule.IsMakeup {
+		// Susulan: hanya siswa di whitelist
+		var makeupStudents []domain.ExamMakeupStudent
+		s.repo.DB.Where("schedule_id = ?", scheduleID).Find(&makeupStudents)
+		if len(makeupStudents) > 0 {
+			ids := make([]uuid.UUID, len(makeupStudents))
+			for i, ms := range makeupStudents {
+				ids[i] = ms.StudentID
+			}
+			s.repo.DB.Preload("User").Where("user_id IN ?", ids).Find(&studentProfiles)
+		}
+	} else {
+		s.repo.DB.Preload("User").Where("class_room_id = ?", schedule.ClassRoomID).Find(&studentProfiles)
+	}
 
 	// Total questions in bank
 	var totalQ int64
@@ -394,6 +407,121 @@ func (s *ProctorService) ExportClassGrades(scheduleID uuid.UUID) (*excelize.File
 	}
 
 	filename := fmt.Sprintf("Nilai_%s_%s.xlsx", live.ClassName, time.Now().Format("20060102"))
+	return file, filename, nil
+}
+
+// ExportMergedGrades menghasilkan Excel rekap nilai satu kelas yang menggabungkan
+// jadwal reguler (scheduleID) dengan semua jadwal susulan yang merujuk ke jadwal ini.
+// Setiap siswa diambil nilainya dari: jadwal susulan (prioritas) jika ada, jadwal reguler jika tidak.
+func (s *ProctorService) ExportMergedGrades(scheduleID uuid.UUID) (*excelize.File, string, error) {
+	// Load jadwal induk
+	var schedule domain.ExamSchedule
+	if err := s.repo.DB.Preload("Bank").Preload("Bank.Subject").Preload("Subject").Preload("ClassRoom").
+		First(&schedule, "id = ?", scheduleID).Error; err != nil {
+		return nil, "", errors.New("jadwal tidak ditemukan")
+	}
+	if schedule.IsMakeup {
+		return nil, "", errors.New("gunakan jadwal induk (reguler) untuk export gabungan")
+	}
+
+	// Load semua jadwal susulan yang merujuk ke jadwal ini
+	var makeupSchedules []domain.ExamSchedule
+	s.repo.DB.Where("parent_schedule_id = ? AND is_makeup = ?", scheduleID, true).Find(&makeupSchedules)
+
+	// Load semua siswa kelas reguler
+	var studentProfiles []domain.StudentProfile
+	s.repo.DB.Preload("User").Where("class_room_id = ?", schedule.ClassRoomID).Find(&studentProfiles)
+
+	// Load semua sesi dari jadwal induk
+	var regularSessions []domain.ExamSession
+	s.repo.DB.Where("schedule_id = ?", scheduleID).Find(&regularSessions)
+	regularSessionMap := make(map[uuid.UUID]domain.ExamSession)
+	for _, sess := range regularSessions {
+		regularSessionMap[sess.StudentID] = sess
+	}
+
+	// Load semua sesi dari jadwal susulan (semua makeup children)
+	makeupSessionMap := make(map[uuid.UUID]domain.ExamSession)
+	for _, ms := range makeupSchedules {
+		var mkSessions []domain.ExamSession
+		s.repo.DB.Where("schedule_id = ?", ms.ID).Find(&mkSessions)
+		for _, sess := range mkSessions {
+			makeupSessionMap[sess.StudentID] = sess
+		}
+	}
+
+	// Tentukan nama kelas & mapel
+	className := schedule.ClassRoom.Name
+	subjectName := "Ujian CBT"
+	if schedule.Subject != nil && schedule.Subject.Name != "" {
+		subjectName = schedule.Subject.Name
+	} else if schedule.Bank != nil && schedule.Bank.Subject.Name != "" {
+		subjectName = schedule.Bank.Subject.Name
+	}
+
+	var reportItems []excel.GradeReportItem
+	for i, sp := range studentProfiles {
+		var sess domain.ExamSession
+		var sumber string
+
+		if mkSess, ok := makeupSessionMap[sp.UserID]; ok {
+			sess = mkSess
+			sumber = "Susulan"
+		} else if regSess, ok := regularSessionMap[sp.UserID]; ok {
+			sess = regSess
+			sumber = "Reguler"
+		} else {
+			// Tidak ikut ujian sama sekali
+			reportItems = append(reportItems, excel.GradeReportItem{
+				No:          i + 1,
+				NIS:         sp.NIS,
+				NISN:        sp.NISN,
+				StudentName: sp.User.FullName,
+				ClassName:   className,
+				StartedAt:   time.Time{},
+				Status:      "Tidak Hadir",
+			})
+			continue
+		}
+
+		statusLabel := string(sess.Status)
+		switch sess.Status {
+		case domain.StatusSubmitted:
+			statusLabel = "Selesai (" + sumber + ")"
+		case domain.StatusInProgress:
+			statusLabel = "Mengerjakan"
+		case domain.StatusBlocked:
+			statusLabel = "Terkunci"
+		default:
+			statusLabel = "Belum Mulai"
+		}
+
+		stStarted := time.Now()
+		if !sess.StartedAt.IsZero() {
+			stStarted = sess.StartedAt
+		}
+
+		reportItems = append(reportItems, excel.GradeReportItem{
+			No:          i + 1,
+			NIS:         sp.NIS,
+			NISN:        sp.NISN,
+			StudentName: sp.User.FullName,
+			ClassName:   className,
+			StartedAt:   stStarted,
+			SubmittedAt: sess.SubmittedAt,
+			Violations:  sess.ViolationCount,
+			TotalScore:  sess.TotalScore,
+			Status:      statusLabel,
+		})
+	}
+
+	title := schedule.Title + " — " + subjectName + " (Rekap Gabungan)"
+	file, err := excel.GenerateGradeReport(title, className, reportItems)
+	if err != nil {
+		return nil, "", err
+	}
+
+	filename := fmt.Sprintf("Nilai_Gabungan_%s_%s.xlsx", className, time.Now().Format("20060102"))
 	return file, filename, nil
 }
 

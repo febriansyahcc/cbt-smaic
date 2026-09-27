@@ -217,6 +217,8 @@ type ExamSchedule struct {
 	RandomizeOptions   bool          `gorm:"default:true" json:"randomize_options"`
 	IsActive           bool          `gorm:"default:true" json:"is_active"`
 	IsMakeup           bool          `gorm:"default:false" json:"is_makeup"`
+	ParentScheduleID   *uuid.UUID    `gorm:"type:uuid;index" json:"parent_schedule_id,omitempty"`
+	ParentSchedule     *ExamSchedule `gorm:"foreignKey:ParentScheduleID" json:"parent_schedule,omitempty"`
 	CreatedAt          time.Time     `json:"created_at"`
 }
 

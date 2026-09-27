@@ -485,7 +485,12 @@ export function useSchedules(ctx) {
     proctors: [],
     is_makeup: false,
     makeup_students: [],
+    parent_schedule_id: null,
   })
+
+  // true jika form dibuka melalui openCreateMakeupSchedule (parent_schedule_id sudah diisi).
+  // Dipakai template untuk mengunci selector kelas & mapel.
+  const isMakeupFormLocked = computed(() => !!scheduleForm.value.parent_schedule_id)
 
   // Penugasan pengawas: modal dari tabel jadwal dan pemilih di dalam form jadwal
   const showProctorAssignModal = ref(false)
@@ -676,6 +681,25 @@ export function useSchedules(ctx) {
     }
   }
 
+  const openCreateMakeupSchedule = (parentSch) => {
+    openCreateSchedule()
+    scheduleForm.value.is_makeup = true
+    scheduleForm.value.parent_schedule_id = parentSch.id
+    scheduleForm.value.title = 'Susulan — ' + parentSch.title
+    // Pre-fill kelas dan mata pelajaran dari jadwal induk
+    const targetClassId = parentSch.class_room_id || parentSch.class_id
+    const targetSubId = parentSch.subject_id || parentSch.bank?.subject_id
+    if (targetClassId) scheduleForm.value.class_id = targetClassId
+    if (targetSubId) scheduleForm.value.subject_id = targetSubId
+    // Pre-fill selectedScheduleClassSubjectId agar selector tampil dengan nilai yang benar
+    const matchedCS = classSubjects.value.find(cs => cs.class_id === targetClassId && cs.subject_id === targetSubId)
+    if (matchedCS) selectedScheduleClassSubjectId.value = matchedCS.id
+    // Pre-fill token dari jadwal induk jika ada
+    if (parentSch.exam_token) scheduleForm.value.exam_token = parentSch.exam_token
+    // Muat daftar siswa kelas agar pemilih peserta bisa digunakan
+    if (targetClassId) loadStudentsForClass(targetClassId)
+  }
+
   const openCreateSchedule = (defaultSubjectId = null) => {
     isEditSchedule.value = false
     const now = new Date()
@@ -709,6 +733,7 @@ export function useSchedules(ctx) {
       proctors: [],
       is_makeup: false,
       makeup_students: [],
+      parent_schedule_id: null,
     }
     scheduleFormInitialProctorIds.value = []
     allStudentsForClass.value = []
@@ -749,6 +774,7 @@ export function useSchedules(ctx) {
       proctors: (sch.proctors || []).map(p => ({ id: p.id, full_name: p.full_name })),
       is_makeup: sch.is_makeup ?? false,
       makeup_students: [],
+      parent_schedule_id: sch.parent_schedule_id || null,
     }
     scheduleFormInitialProctorIds.value = (sch.proctors || []).map(p => p.id)
     allStudentsForClass.value = []
@@ -822,6 +848,7 @@ export function useSchedules(ctx) {
         randomize_options: scheduleForm.value.randomize_options,
         is_active: scheduleForm.value.is_active,
         is_makeup: scheduleForm.value.is_makeup,
+        parent_schedule_id: scheduleForm.value.parent_schedule_id || null,
       }
 
       let savedScheduleId = scheduleForm.value.id
@@ -1041,6 +1068,8 @@ export function useSchedules(ctx) {
     groupedAvailableClassSubjects,
     onClassSubjectChange,
     openCreateSchedule,
+    openCreateMakeupSchedule,
+    isMakeupFormLocked,
     openEditSchedule,
     scheduleFormSessionPeers,
     submitScheduleForm,

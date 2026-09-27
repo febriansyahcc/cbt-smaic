@@ -155,6 +155,7 @@ func main() {
 	proctor.Post("/schedules/:id/extend-time-all", proctorControl, handlers.HandleExtendTimeAllSchedule)
 	proctor.Post("/sessions/:id/force-submit", proctorControl, handlers.HandleForceSubmitSession)
 	proctor.Get("/reports/excel/:schedule_id", perm(pReports), handlers.HandleExportGradesExcel)
+	proctor.Get("/reports/excel-merged/:schedule_id", perm(pReports), handlers.HandleExportMergedGradesExcel)
 	proctor.Get("/reports/pdf/:schedule_id", perm(pReports), handlers.HandleExportBeritaAcaraPDF)
 
 	// Admin / Staff Routes
