@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Contoh Desain Manual CBT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --indigo: #4f46e5;
+    --indigo-soft: #eef2ff;
+    --indigo-line: #c7d2fe;
+    --ink: #0f172a;
+    --text: #334155;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --surface: #f8fafc;
+    --green: #0b7a3b;
+    --gold: #c9a227;
+    --amber: #b45309;
+    --amber-soft: #fffbeb;
+    --amber-line: #fcd34d;
+    --red: #b91c1c;
+    --red-soft: #fef2f2;
+  }
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #d9dde3; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text);
+    font-size: 9.2pt;
+    line-height: 1.45;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 210mm;
+    height: 297mm;
+    margin: 12mm auto;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, .15);
+  }
+  @media print {
+    html, body { background: #fff; }
+    .page { margin: 0; box-shadow: none; page-break-after: always; }
+  }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+  /* ---------- Sampul ---------- */
+  .cover { display: flex; flex-direction: column; }
+  .cover-band { height: 8mm; background: var(--green); position: relative; }
+  .cover-band::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1.6mm;
+    height: 1.6mm; background: var(--gold);
+  }
+  .cover-body {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    text-align: center; padding: 34mm 24mm 0;
+  }
+  .cover-logo { width: 42mm; height: 42mm; object-fit: contain; }
+  .cover-school {
+    margin-top: 8mm; font-size: 13pt; font-weight: 800; letter-spacing: .06em; color: var(--ink);
+  }
+  .cover-foundation { margin-top: 1mm; font-size: 9.5pt; color: var(--muted); }
+  .cover-rule { width: 22mm; height: .6mm; background: var(--gold); margin: 16mm 0 12mm; }
+  .cover-kicker {
+    font-size: 9pt; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--indigo);
+  }
+  .cover-title {
+    margin: 4mm 0 0; font-size: 34pt; line-height: 1.1; font-weight: 800; color: var(--ink); letter-spacing: -.02em;
+  }
+  .cover-sub { margin-top: 5mm; font-size: 12pt; color: var(--muted); max-width: 120mm; }
+  .cover-role {
+    margin-top: 12mm; display: inline-block; padding: 3mm 8mm; border-radius: 99px;
+    background: var(--indigo); color: #fff; font-weight: 700; font-size: 11pt;
+  }
+  .cover-foot {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    padding: 0 24mm 18mm; font-size: 8.5pt; color: var(--muted);
+  }
+  .cover-foot strong { color: var(--ink); display: block; font-size: 9pt; }
+
+  /* ---------- Halaman isi ---------- */
+  .content { padding: 12mm 18mm 0; }
+  .running-head {
+    display: flex; align-items: center; gap: 3mm; padding-bottom: 3mm;
+    border-bottom: .3mm solid var(--line); font-size: 8.5pt; color: var(--muted);
+  }
+  .running-head img { width: 7mm; height: 7mm; object-fit: contain; }
+  .running-head .spacer { flex: 1; }
+  .running-head b { color: var(--ink); font-weight: 600; }
+
+  .chapter { margin-top: 6mm; font-size: 8.5pt; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--indigo); }
+  h1 { margin: 1.5mm 0 0; font-size: 19pt; line-height: 1.2; color: var(--ink); font-weight: 800; letter-spacing: -.01em; }
+  .when {
+    margin-top: 2.5mm; font-size: 10pt; color: var(--muted);
+  }
+  .when b { color: var(--text); }
+
+  .shots { display: flex; gap: 12mm; margin-top: 5mm; justify-content: center; }
+  .shot { width: 37mm; text-align: center; }
+  .frame { position: relative; }
+  .frame > .num { position: absolute; left: -3.2mm; transform: translateY(-50%); box-shadow: 0 0 0 .6mm #fff; }
+  .phone {
+    position: relative; border: 1.6mm solid #1e293b; border-radius: 6mm; overflow: hidden; background: #fff;
+    box-shadow: 0 2mm 5mm rgba(15, 23, 42, .12);
+  }
+  .phone img { display: block; width: 100%; }
+  .phone .mark {
+    position: absolute; border: .7mm solid #dc2626; border-radius: 2.4mm;
+  }
+  .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 6mm; height: 6mm; border-radius: 50%; background: #dc2626; color: #fff;
+    font-weight: 800; font-size: 8.5pt; line-height: 1;
+  }
+  .caption { margin-top: 2mm; font-size: 8pt; color: var(--muted); }
+  .caption b { color: var(--ink); }
+
+  ol.steps { list-style: none; margin: 4mm 0 0; padding: 0; counter-reset: s; }
+  ol.steps li { display: flex; gap: 3.5mm; padding: 1.4mm 0; border-top: .25mm solid var(--line); }
+  ol.steps li:first-child { border-top: 0; }
+  ol.steps .num { flex: none; margin-top: .6mm; }
+  ol.steps .t { font-weight: 700; color: var(--ink); }
+  ol.steps p { margin: .5mm 0 0; }
+  .ui { font-weight: 600; color: var(--indigo); }
+  kbd {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9pt; font-weight: 700;
+    padding: .2mm 1.6mm; border: .3mm solid var(--line); border-bottom-width: .6mm; border-radius: 1.2mm;
+    background: var(--surface); color: var(--ink);
+  }
+
+  .notes { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-top: 4mm; }
+  .note {
+    padding: 2.4mm 3.5mm; border-radius: 3mm; border: .3mm solid; border-left-width: 1.4mm; font-size: 8.8pt;
+  }
+  .note .label { display: block; font-size: 7.5pt; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 1mm; }
+  .note.info { background: var(--indigo-soft); border-color: var(--indigo-line); border-left-color: var(--indigo); }
+  .note.info .label { color: var(--indigo); }
+  .note.warn { background: var(--amber-soft); border-color: var(--amber-line); border-left-color: #d97706; }
+  .note.warn .label { color: var(--amber); }
+
+  table.errors { width: 100%; border-collapse: collapse; margin-top: 4mm; font-size: 8.6pt; }
+  table.errors caption { text-align: left; font-weight: 700; color: var(--ink); font-size: 10pt; padding-bottom: 2mm; }
+  table.errors th { text-align: left; font-size: 7.5pt; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 1.6mm 2.5mm; border-bottom: .3mm solid var(--line); background: var(--surface); }
+  table.errors td { padding: 1.8mm 2.5mm; border-bottom: .25mm solid var(--line); vertical-align: top; }
+  table.errors td:first-child { color: var(--red); font-weight: 600; width: 44%; }
+
+  .page-foot {
+    position: absolute; left: 18mm; right: 18mm; bottom: 10mm;
+    display: flex; justify-content: space-between; padding-top: 2.5mm;
+    border-top: .3mm solid var(--line); font-size: 8pt; color: var(--muted);
+  }
+  .page-foot b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<!-- ===================== SAMPUL ===================== -->
+<section class="page cover">
+  <div class="cover-band"></div>
+  <div class="cover-body">
+    <img class="cover-logo" src="../../../frontend/public/logo-smic.png" alt="Logo SMAS Islamic Centre Demak">
+    <div class="cover-school">SMAS ISLAMIC CENTRE DEMAK</div>
+    <div class="cover-foundation">Yayasan Islamic Centre Sultan Fatah Demak</div>
+
+    <div class="cover-rule"></div>
+
+    <div class="cover-kicker">Buku Panduan</div>
+    <h2 class="cover-title">Ujian Berbasis<br>Komputer &amp; HP</h2>
+    <p class="cover-sub">Langkah demi langkah mengikuti ujian CBT, dari masuk akun sampai jawaban terkirim.</p>
+    <span class="cover-role">Panduan Siswa</span>
+  </div>
+  <div class="cover-foot">
+    <div><strong>Versi 1.0</strong>September 2026</div>
+    <div style="text-align:right"><strong>Tim Kurikulum</strong>SMAS Islamic Centre Demak</div>
+  </div>
+</section>
+
+<!-- ===================== HALAMAN ISI ===================== -->
+<section class="page">
+  <div class="content">
+    <div class="running-head">
+      <img src="../../../frontend/public/logo-smic.png" alt="">
+      <b>Panduan Siswa</b>
+      <span class="spacer"></span>
+      <span>Bab 2 · Mengikuti Ujian</span>
+    </div>
+
+    <div class="chapter">2.1</div>
+    <h1>Masuk Akun dan Memulai Ujian</h1>
+    <p class="when"><b>Kapan dipakai:</b> di awal setiap sesi ujian, setelah pengawas ruang mengumumkan token.</p>
+
+    <div class="shots">
+      <div class="shot">
+        <div class="frame">
+          <div class="phone">
+            <img src="img/01-login.png" alt="Halaman login">
+            <span class="mark" style="top:42.8%;left:9%;width:82%;height:19.8%"></span>
+          </div>
+          <span class="num" style="top:53%">1</span>
+        </div>
+        <div class="caption"><b>Halaman masuk</b></div>
+      </div>
+      <div class="shot">
+        <div class="frame">
+          <div class="phone">
+            <img src="img/02-jadwal-token.png" alt="Daftar jadwal ujian dan kolom token">
+            <span class="mark" style="top:70.4%;left:29.3%;width:62%;height:5.8%"></span>
+            <span class="mark" style="top:76.5%;left:8.9%;width:82.2%;height:5.8%"></span>
+          </div>
+          <span class="num" style="top:47.5%">2</span>
+          <span class="num" style="top:73.3%">3</span>
+          <span class="num" style="top:79.4%">4</span>
+        </div>
+        <div class="caption"><b>Jadwal &amp; token</b></div>
+      </div>
+      <div class="shot">
+        <div class="frame">
+          <div class="phone">
+            <img src="img/03-soal.png" alt="Tampilan soal pertama">
+          </div>
+        </div>
+        <div class="caption"><b>Soal pertama terbuka</b></div>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><span class="num">1</span><div>
+        <span class="t">Masuk dengan akun Anda</span>
+        <p>Isi <span class="ui">NIS / No. Ujian / Username</span> dan <span class="ui">Kata Sandi</span>, lalu ketuk <span class="ui">Masuk ke Sistem Ujian</span>. Jika memindai QR pada kartu peserta, kolom username sudah terisi otomatis.</p>
+      </div></li>
+      <li><span class="num">2</span><div>
+        <span class="t">Temukan ujian di Jadwal Ujian Aktif</span>
+        <p>Cocokkan mata pelajaran, durasi, dan jam mulai. Jika daftar masih kosong, ketuk ikon muat ulang di samping judul.</p>
+      </div></li>
+      <li><span class="num">3</span><div>
+        <span class="t">Ketik token dari pengawas</span>
+        <p>Masukkan token pada kolom <span class="ui">Token Ujian</span>, contohnya <kbd>CBT2026</kbd>. Huruf besar atau kecil tidak berpengaruh.</p>
+      </div></li>
+      <li><span class="num">4</span><div>
+        <span class="t">Ketuk Mulai Kerjakan Ujian</span>
+        <p>Layar berpindah ke mode penuh dan soal pertama tampil. Waktu hitung mundur di bagian atas mengikuti jam server, bukan jam HP.</p>
+      </div></li>
+    </ol>
+
+    <div class="notes">
+      <div class="note info">
+        <span class="label">Info</span>
+        Urutan soal dan pilihan jawaban setiap siswa bisa berbeda. Ini disengaja, jadi tidak perlu dicocokkan dengan teman.
+      </div>
+      <div class="note warn">
+        <span class="label">Perhatian</span>
+        Satu akun hanya aktif di satu perangkat. Jangan masuk dari HP lain; minta pengawas mereset jika perangkat bermasalah.
+      </div>
+    </div>
+
+    <table class="errors">
+      <caption>Jika muncul pesan berikut</caption>
+      <thead><tr><th>Pesan di layar</th><th>Yang perlu dilakukan</th></tr></thead>
+      <tbody>
+        <tr><td>Token Belum Diisi</td><td>Isi kolom token sebelum mengetuk tombol mulai.</td></tr>
+        <tr><td>Token ujian salah atau tidak valid</td><td>Periksa ulang ejaan token, tanyakan kembali ke pengawas.</td></tr>
+        <tr><td>Jadwal ujian belum dimulai atau sudah berakhir</td><td>Tunggu jam mulai; jika sudah lewat, lapor ke pengawas.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-foot">
+    <span>SMAS Islamic Centre Demak · Panduan Siswa CBT</span>
+    <b>7</b>
+  </div>
+</section>
+
+</body>
+</html>
