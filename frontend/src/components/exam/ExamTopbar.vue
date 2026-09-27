@@ -72,18 +72,21 @@ const timerClass = computed(() => {
 })
 
 const syncBadgeClass = computed(() => {
+  if (examStore.syncError) return 'bg-red-50 text-red-700 border border-red-200'
   if (!examStore.isOnline) return 'bg-red-50 text-red-700 border border-red-200'
   if (examStore.pendingCount > 0 || examStore.isSyncing) return 'bg-amber-50 text-amber-700 border border-amber-200'
   return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
 })
 
 const syncDotClass = computed(() => {
+  if (examStore.syncError) return 'bg-red-500 animate-pulse'
   if (!examStore.isOnline) return 'bg-red-500'
   if (examStore.pendingCount > 0 || examStore.isSyncing) return 'bg-amber-500 animate-pulse'
   return 'bg-emerald-500'
 })
 
 const syncStatusText = computed(() => {
+  if (examStore.syncError) return 'Gagal Sync'
   if (!examStore.isOnline) return 'Offline (Tersimpan Lokal)'
   if (examStore.isSyncing) return 'Menyinkronkan...'
   if (examStore.pendingCount > 0) return `${examStore.pendingCount} Menunggu Sync`

@@ -250,24 +250,26 @@ func (s *ExamService) StartOrResumeExam(studentUserID uuid.UUID, scheduleID uuid
 	}, nil
 }
 
-// SyncAnswers handles idempotent batch upserts from client
-func (s *ExamService) SyncAnswers(sessionID uuid.UUID, studentUserID uuid.UUID, items []SyncAnswerItem) (int, error) {
+// SyncAnswers handles idempotent batch upserts from client. Deadline sesi ikut dikembalikan agar
+// klien menyesuaikan timer, mis. setelah pengawas menambah waktu. Daftar jawaban boleh kosong
+// (heartbeat) untuk sekadar mengambil deadline terbaru.
+func (s *ExamService) SyncAnswers(sessionID uuid.UUID, studentUserID uuid.UUID, items []SyncAnswerItem) (int, time.Time, error) {
 	var session domain.ExamSession
 	if err := s.repo.DB.First(&session, "id = ? AND student_id = ?", sessionID, studentUserID).Error; err != nil {
-		return 0, errors.New("sesi tidak valid")
+		return 0, time.Time{}, errors.New("sesi tidak valid")
 	}
 
 	if session.Status == domain.StatusSubmitted {
-		return 0, errors.New("ujian telah dikumpulkan")
+		return 0, session.ServerDeadline, errors.New("ujian telah dikumpulkan")
 	}
 	if session.Status == domain.StatusBlocked {
-		return 0, errors.New("sesi sedang terblokir")
+		return 0, session.ServerDeadline, errors.New("sesi sedang terblokir")
 	}
 
 	now := time.Now()
 	// Check grace deadline (30 seconds grace for network latency)
 	if now.After(session.ServerDeadline.Add(30 * time.Second)) {
-		return 0, errors.New("waktu pengerjaan telah habis")
+		return 0, session.ServerDeadline, errors.New("waktu pengerjaan telah habis")
 	}
 
 	count := 0
@@ -296,7 +298,7 @@ func (s *ExamService) SyncAnswers(sessionID uuid.UUID, studentUserID uuid.UUID, 
 		}
 	}
 
-	return count, nil
+	return count, session.ServerDeadline, nil
 }
 
 // RecordViolation logs anti-cheat event and blocks session if quota reached.

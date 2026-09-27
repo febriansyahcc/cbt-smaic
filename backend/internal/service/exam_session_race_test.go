@@ -121,3 +121,19 @@ func TestExtendTimeKeepsConcurrentViolationCount(t *testing.T) {
 		t.Fatalf("violation_count = %d setelah tambah waktu, ingin 1", s.ViolationCount)
 	}
 }
+
+func TestSyncHeartbeatReturnsExtendedDeadline(t *testing.T) {
+	f, exam, proctor, id := newSessionFixture(t, domain.StatusInProgress, 0)
+	before := loadSession(t, f, id).ServerDeadline
+
+	if err := proctor.ExtendTimeSession(id, 10, ""); err != nil {
+		t.Fatal(err)
+	}
+	n, deadline, err := exam.SyncAnswers(id, f.siswa.ID, nil)
+	if err != nil || n != 0 {
+		t.Fatalf("heartbeat tanpa jawaban = %d, %v", n, err)
+	}
+	if got := deadline.Sub(before); got < 9*time.Minute || got > 11*time.Minute {
+		t.Fatalf("deadline dari sync bergeser %v, ingin sekitar +10 menit", got)
+	}
+}

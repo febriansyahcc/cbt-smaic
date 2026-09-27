@@ -183,7 +183,7 @@ func (h *Handlers) HandleSyncAnswers(c *fiber.Ctx) error {
 		})
 	}
 
-	count, err := h.examService.SyncAnswers(req.SessionID, user.ID, req.Answers)
+	count, deadline, err := h.examService.SyncAnswers(req.SessionID, user.ID, req.Answers)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -192,9 +192,11 @@ func (h *Handlers) HandleSyncAnswers(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"success": true,
-		"synced":  count,
-		"message": "Jawaban berhasil disinkronkan",
+		"success":         true,
+		"synced":          count,
+		"server_time":     time.Now(),
+		"server_deadline": deadline,
+		"message":         "Jawaban berhasil disinkronkan",
 	})
 }
 
