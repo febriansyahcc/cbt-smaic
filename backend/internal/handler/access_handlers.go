@@ -111,6 +111,16 @@ func (h *Handlers) respondBankChangeError(c *fiber.Ctx, scheduleID uuid.UUID, er
 	}
 }
 
+// denyEssayGrading menolak pengguna yang bukan administrator atau pengampu kelas dan mapel jadwal.
+func (h *Handlers) denyEssayGrading(c *fiber.Ctx, scheduleID uuid.UUID) bool {
+	user, err := middleware.GetCurrentUser(c)
+	if err != nil || !h.accessService.CanGradeEssay(user, scheduleID) {
+		h.forbidden(c, "Akses ditolak: koreksi essay hanya untuk guru pengampu kelas dan mata pelajaran ini")
+		return true
+	}
+	return false
+}
+
 func (h *Handlers) denyStudentControl(c *fiber.Ctx, studentUserID uuid.UUID) bool {
 	user, err := middleware.GetCurrentUser(c)
 	if err != nil || !h.accessService.CanControlStudent(user, studentUserID) {

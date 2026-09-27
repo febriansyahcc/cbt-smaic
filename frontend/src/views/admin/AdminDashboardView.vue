@@ -3741,6 +3741,7 @@
             ]"
           >Informasi</button>
           <button
+            v-if="canGradeEssay(selectedScheduleDetail)"
             type="button"
             @click="switchToEssayTab()"
             :class="[
@@ -6246,6 +6247,13 @@ const fetchEssayAnswers = async (scheduleId) => {
   } finally {
     essayLoading.value = false
   }
+}
+
+// Koreksi essay hanya untuk administrator dan guru pengampu kelas + mapel jadwal (sama dengan aturan server).
+const canGradeEssay = (sch) => {
+  const u = authStore.user
+  if (u?.role === 'ADMIN' || (u?.permissions || []).includes('*')) return true
+  return Array.isArray(sch?.relations) && sch.relations.includes('mengampu')
 }
 
 const switchToEssayTab = () => {

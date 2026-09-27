@@ -3450,6 +3450,9 @@ func (h *Handlers) HandleGetEssayAnswers(c *fiber.Ctx) error {
 			"message": "ID jadwal tidak valid",
 		})
 	}
+	if h.denyEssayGrading(c, scheduleID) {
+		return nil
+	}
 
 	var schedule domain.ExamSchedule
 	if err := h.repo.DB.First(&schedule, "id = ?", scheduleID).Error; err != nil {
@@ -3576,6 +3579,13 @@ func (h *Handlers) HandleGetEssayAnswers(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "data": result})
 }
 
+// errScoreAboveWeight menandai nilai essay yang melebihi bobot soalnya.
+type errScoreAboveWeight struct{ weight float64 }
+
+func (e errScoreAboveWeight) Error() string {
+	return fmt.Sprintf("Nilai tidak boleh melebihi bobot soal (%g)", e.weight)
+}
+
 type GradeEssayItem struct {
 	AnswerID       uuid.UUID `json:"answer_id"`
 	ScoreAwarded   float64   `json:"score_awarded"`
@@ -3589,6 +3599,9 @@ func (h *Handlers) HandleGradeEssayAnswers(c *fiber.Ctx) error {
 			"success": false,
 			"message": "ID jadwal tidak valid",
 		})
+	}
+	if h.denyEssayGrading(c, scheduleID) {
+		return nil
 	}
 
 	var items []GradeEssayItem
@@ -3626,6 +3639,11 @@ func (h *Handlers) HandleGradeEssayAnswers(c *fiber.Ctx) error {
 			}
 			if ans.ID == uuid.Nil {
 				continue
+			}
+			var weight float64
+			tx.Model(&domain.Question{}).Where("id = ?", ans.QuestionID).Select("score_weight").Scan(&weight)
+			if item.ScoreAwarded > weight {
+				return errScoreAboveWeight{weight: weight}
 			}
 
 			scoreVal := item.ScoreAwarded
@@ -3673,6 +3691,13 @@ func (h *Handlers) HandleGradeEssayAnswers(c *fiber.Ctx) error {
 		return nil
 	})
 
+	var overWeight errScoreAboveWeight
+	if errors.As(txErr, &overWeight) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": overWeight.Error(),
+		})
+	}
 	if txErr != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
