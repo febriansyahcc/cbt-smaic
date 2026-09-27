@@ -11,6 +11,8 @@ export const TAB_ACCESS = {
   classes: ['master:manage'],
   subjects: ['master:manage'],
   'class-subjects': ['master:manage'],
+  // Backup berisi seluruh data termasuk hash kata sandi: hanya administrator (izin "*").
+  backup: ['*'],
 }
 
 // Urutan menu yang dipilih sebagai halaman awal untuk non-admin.

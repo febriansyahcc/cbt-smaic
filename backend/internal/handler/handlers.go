@@ -12,6 +12,12 @@ type Handlers struct {
 	proctorService *service.ProctorService
 	accessService  *service.AccessService
 	participants   *service.EventParticipantService
+	backupService  *service.BackupService
+}
+
+// BackupService dipakai main.go untuk menjalankan penjadwal backup otomatis.
+func (h *Handlers) BackupService() *service.BackupService {
+	return h.backupService
 }
 
 func NewHandlers(repo *repository.Database) *Handlers {
@@ -22,5 +28,6 @@ func NewHandlers(repo *repository.Database) *Handlers {
 		proctorService: service.NewProctorService(repo),
 		accessService:  service.NewAccessService(repo),
 		participants:   service.NewEventParticipantService(repo),
+		backupService:  service.NewBackupService(repo),
 	}
 }

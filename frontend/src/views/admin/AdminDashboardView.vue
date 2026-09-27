@@ -18,6 +18,7 @@
         <ClassesTab />
         <ProctorTab />
         <QuestionBanksTab />
+        <BackupTab />
       </main>
     </div>
 
@@ -61,6 +62,7 @@ import TeachersTab from './dashboard/TeachersTab.vue'
 import ClassesTab from './dashboard/ClassesTab.vue'
 import ProctorTab from './dashboard/ProctorTab.vue'
 import QuestionBanksTab from './dashboard/QuestionBanksTab.vue'
+import BackupTab from './dashboard/BackupTab.vue'
 import ScheduleModals from './dashboard/ScheduleModals.vue'
 import EventFormModal from './dashboard/EventFormModal.vue'
 import StudentModals from './dashboard/StudentModals.vue'
@@ -87,6 +89,7 @@ import { useQuestionBanks } from './dashboard/composables/useQuestionBanks'
 import { useQuestionEditor } from './dashboard/composables/useQuestionEditor'
 import { useProctoring } from './dashboard/composables/useProctoring'
 import { useHome } from './dashboard/composables/useHome'
+import { useBackups } from './dashboard/composables/useBackups'
 import { useDashboardNavigation } from './dashboard/composables/useDashboardNavigation'
 
 const router = useRouter()
@@ -109,6 +112,7 @@ Object.assign(ctx, useQuestionBanks(ctx))
 Object.assign(ctx, useQuestionEditor(ctx))
 Object.assign(ctx, useProctoring(ctx))
 Object.assign(ctx, useHome(ctx))
+Object.assign(ctx, useBackups(ctx))
 Object.assign(ctx, useDashboardNavigation(ctx))
 
 const {

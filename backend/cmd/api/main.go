@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"cbt-backend/internal/domain"
@@ -54,12 +56,17 @@ func main() {
 	// Enable Gzip/Brotli compression for high-concurrency low-bandwidth performance
 	app.Use(compress.New(compress.Config{
 		Level: compress.LevelBestSpeed,
+		// Arsip backup sudah terkompresi gzip; jangan dikompresi ulang.
+		Next: func(c *fiber.Ctx) bool {
+			return strings.HasPrefix(c.Path(), "/api/v1/admin/backups/")
+		},
 	}))
 
 	// Ensure uploads directory exists
 	_ = os.MkdirAll("./uploads/questions", 0755)
 
 	handlers := handler.NewHandlers(db)
+	handlers.BackupService().StartScheduler(context.Background())
 
 	// Static Media Serving. File unggahan hanya boleh tampil sebagai gambar: CSP sandbox
 	// mematikan script bila file dibuka langsung (termasuk SVG lama yang sudah terunggah).
@@ -233,6 +240,14 @@ func main() {
 	admin.Delete("/events/:id", eventsMgr, handlers.HandleDeleteEvent)
 	admin.Get("/events/:id/participants", eventsMgr, handlers.HandleGetEventParticipants)
 	admin.Post("/events/:id/participants/generate", eventsMgr, handlers.HandleGenerateEventParticipants)
+
+	// Backup Data: arsip berisi seluruh database (termasuk hash kata sandi) dan gambar soal,
+	// sehingga hanya administrator (role ADMIN atau izin "*") yang boleh mengaksesnya.
+	backupAdmin := perm(string(domain.PermAll))
+	admin.Get("/backups", backupAdmin, handlers.HandleGetBackups)
+	admin.Post("/backups", backupAdmin, handlers.HandleCreateBackup)
+	admin.Get("/backups/:name/download", backupAdmin, handlers.HandleDownloadBackup)
+	admin.Delete("/backups/:name", backupAdmin, handlers.HandleDeleteBackup)
 
 	// User Management Routes
 	admin.Get("/users", usersMgr, handlers.HandleGetUsers)

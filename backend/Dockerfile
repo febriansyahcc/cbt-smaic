@@ -32,14 +32,17 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # ==========================================
 FROM alpine:3.20
 
-# Install runtime dependencies (certificates, timezone)
-RUN apk add --no-cache ca-certificates tzdata wget \
+# Install runtime dependencies (certificates, timezone). postgresql16-client menyediakan
+# pg_dump/pg_restore untuk fitur Backup Data; versinya harus sama dengan server PostgreSQL 16.
+RUN apk add --no-cache ca-certificates tzdata wget postgresql16-client \
     && addgroup -S cbtgroup && adduser -S cbtuser -G cbtgroup
 
 WORKDIR /app
 
-# Ensure uploads directory exists and is owned by cbtuser
-RUN mkdir -p /app/uploads/questions && chown -R cbtuser:cbtgroup /app/uploads
+# Ensure uploads & backups directories exist and are owned by cbtuser
+RUN mkdir -p /app/uploads/questions /app/backups \
+    && chown -R cbtuser:cbtgroup /app/uploads /app/backups \
+    && chmod 750 /app/backups
 
 # Copy binary & timezone from builder
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
