@@ -1,0 +1,8 @@
+{
+  "name": "cbt-manual-build",
+  "private": true,
+  "type": "module",
+  "description": "Membuat PDF buku panduan CBT dari HTML di docs/manual",
+  "scripts": { "build": "node build.mjs" },
+  "dependencies": { "pdf-lib": "^1.17.1", "playwright": "^1.56.1" }
+}

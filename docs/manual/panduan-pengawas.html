@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panduan Pengawas CBT</title>
+<link rel="stylesheet" href="assets/manual.css">
+</head>
+<body>
+
+<section class="sheet cover">
+  <div class="cover-band"></div>
+  <div class="cover-body">
+    <img class="cover-logo" src="../../frontend/public/logo-smic.png" alt="Logo SMAS Islamic Centre Demak">
+    <div class="cover-school">SMAS ISLAMIC CENTRE DEMAK</div>
+    <div class="cover-foundation">Yayasan Islamic Centre Sultan Fatah Demak</div>
+    <div class="cover-rule"></div>
+    <div class="cover-kicker">Buku Panduan</div>
+    <h1 class="cover-title">Pengawasan<br>Ujian CBT</h1>
+    <p class="cover-sub">Memantau ruang ujian, menangani siswa terkunci, menambah waktu, dan mencetak dokumen ujian.</p>
+    <span class="cover-role">Panduan Pengawas</span>
+  </div>
+  <div class="cover-foot">
+    <div><strong>Versi 1.0</strong>September 2026</div>
+    <div style="text-align:right"><strong>Tim Kurikulum</strong>SMAS Islamic Centre Demak</div>
+  </div>
+</section>
+
+<main class="sheet">
+
+<section class="toc">
+  <span class="chapter-no">Daftar Isi</span>
+  <h2>Isi Panduan</h2>
+  <ol>
+    <li><span class="n">1</span><span class="t">Alur Kerja Hari Ujian<span class="d">Daftar periksa sebelum, selama, dan sesudah ujian</span></span></li>
+    <li><span class="n">2</span><span class="t">Membuka Layar Pengawasan<span class="d">Masuk, memilih event, dan memilih sesi</span></span></li>
+    <li><span class="n">3</span><span class="t">Membaca Layar Pengawasan<span class="d">Status, sisa waktu, progres, dan pelanggaran</span></span></li>
+    <li><span class="n">4</span><span class="t">Membuka Blokir Siswa<span class="d">Menangani layar UJIAN TERKUNCI</span></span></li>
+    <li><span class="n">5</span><span class="t">Menambah Waktu<span class="d">Untuk satu siswa atau seluruh kelas</span></span></li>
+    <li><span class="n">6</span><span class="t">Siswa Pindah Perangkat<span class="d">Reset HP saat perangkat bermasalah</span></span></li>
+    <li><span class="n">7</span><span class="t">Mengumpulkan Paksa<span class="d">Menutup ujian siswa tertentu</span></span></li>
+    <li><span class="n">8</span><span class="t">Dokumen Ujian<span class="d">Daftar hadir, berita acara, dan rekap nilai</span></span></li>
+    <li><span class="n">9</span><span class="t">Tanya Jawab<span class="d">Kejadian yang sering muncul di ruang ujian</span></span></li>
+  </ol>
+</section>
+
+<!-- ================= BAB 1 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 1</span>Alur Kerja Hari Ujian</h2>
+<p class="lead">Daftar periksa berikut merangkum tugas pengawas dari sebelum hingga sesudah ujian. Rincian setiap tindakan ada di bab berikutnya.</p>
+
+<div class="cols">
+  <div class="keep">
+    <h3>Sehari sebelum</h3>
+    <ul class="checklist">
+      <li>Pastikan akun Bapak/Ibu bisa masuk.</li>
+      <li>Periksa di <span class="ui">Beranda</span> bagian <span class="ui">Tugas Mengawasi</span>: jadwal Bapak/Ibu sudah tercantum.</li>
+      <li>Jika jadwal belum tercantum, hubungi admin kurikulum untuk ditugaskan sebagai pengawas.</li>
+    </ul>
+    <h3>Sebelum ujian dimulai</h3>
+    <ul class="checklist">
+      <li>Buka <span class="ui">Live Proctoring</span> dan pilih sesi ruangan Bapak/Ibu.</li>
+      <li>Cetak daftar hadir (Bab 8) bila diperlukan.</li>
+      <li>Minta siswa mengisi daya HP, menutup aplikasi lain, dan tersambung ke Wi-Fi sekolah.</li>
+      <li>Umumkan token yang tampil di kotak <span class="ui">TOKEN</span> saat jam ujian dimulai.</li>
+    </ul>
+  </div>
+  <div class="keep">
+    <h3>Selama ujian</h3>
+    <ul class="checklist">
+      <li>Pantau siswa yang masih <span class="ui">Belum Mulai</span>.</li>
+      <li>Tangani siswa <span class="ui">Terblokir</span> (Bab 4).</li>
+      <li>Catat kejadian khusus untuk berita acara.</li>
+      <li>Beri tambahan waktu hanya bila ada kendala yang sah (Bab 5).</li>
+    </ul>
+    <h3>Setelah ujian</h3>
+    <ul class="checklist">
+      <li>Pastikan semua siswa berstatus <span class="ui">Selesai</span>.</li>
+      <li>Unduh <span class="ui">Rekap Nilai (.xlsx)</span> dan <span class="ui">Berita Acara (.pdf)</span>, atau cetak dokumen resmi.</li>
+      <li>Tanda tangani berita acara dan serahkan ke panitia.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note info"><span class="label">Info</span>Tombol tindakan (Buka Blokir, +Waktu, Selesaikan, Reset HP) hanya aktif untuk jadwal yang ditugaskan kepada Bapak/Ibu. Pada jadwal lain muncul keterangan <i>"Anda hanya memantau jadwal ini"</i>.</div>
+
+<!-- ================= BAB 2 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 2</span>Membuka Layar Pengawasan</h2>
+<p class="when"><b>Kapan dipakai:</b> setiap kali akan mengawasi ruang ujian.</p>
+
+<figure class="half"><img class="screen" src="img/pengawas/01-beranda-guru.png" alt="Beranda guru dan pengawas"><figcaption><b>Beranda</b> menampilkan jadwal dan tugas mengawasi Bapak/Ibu</figcaption></figure>
+
+<ol class="steps">
+  <li><b>Masuk</b> dengan username dan password Bapak/Ibu.</li>
+  <li><b>Di Beranda</b>, lihat bagian <span class="ui">Tugas Mengawasi</span>, lalu klik <span class="ui">Pantau</span> pada jadwal yang dimaksud. Cara lain: klik <span class="ui">Pilih Event</span>, pilih event ujian, lalu buka menu <span class="ui">Live Proctoring</span>.</li>
+  <li><b>Periksa kolom <span class="ui">Sesi</span></b> di kanan atas. Jika Bapak/Ibu mengawasi lebih dari satu sesi, pilih sesi yang sesuai ruangan.</li>
+  <li><b>Lihat token</b> di kotak <span class="ui">TOKEN</span>. Umumkan token ini kepada siswa saat ujian dimulai.</li>
+</ol>
+
+<div class="note info"><span class="label">Info</span>Data di layar pengawasan diperbarui otomatis setiap 4 detik. Tidak perlu memuat ulang halaman.</div>
+
+<!-- ================= BAB 3 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 3</span>Membaca Layar Pengawasan</h2>
+
+<figure><img class="screen" src="img/pengawas/02-live.png" alt="Layar Live Proctoring"><figcaption><b>Live Proctoring</b> untuk satu sesi ujian</figcaption></figure>
+
+<table>
+  <thead><tr><th>Kolom</th><th>Artinya</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Status</td><td><b>Belum Mulai</b>: siswa belum memasukkan token. <b>Sedang Mengerjakan</b>: ujian berjalan. <b>Terblokir</b>: ujian terkunci karena batas pelanggaran tercapai. <b>Selesai</b>: jawaban sudah dikumpulkan.</td></tr>
+    <tr><td class="key">Sisa Waktu</td><td>Hitungan mundur tiap siswa. Berubah merah dan berkedip saat sisa waktu 5 menit atau kurang.</td></tr>
+    <tr><td class="key">Progres Jawaban</td><td>Jumlah soal yang sudah dijawab dari total soal.</td></tr>
+    <tr><td class="key">Pelanggaran</td><td>Jumlah pelanggaran siswa. Klik angkanya untuk melihat catatan lengkap.</td></tr>
+    <tr><td class="key">Nilai PG</td><td>Nilai otomatis dari soal pilihan ganda dan isian, tampil setelah siswa selesai. Soal essay dinilai guru terpisah.</td></tr>
+  </tbody>
+</table>
+<p>Gunakan tombol filter <span class="ui">Semua</span>, <span class="ui">Mengerjakan</span>, <span class="ui">Terblokir</span>, <span class="ui">Selesai</span>, dan <span class="ui">Belum Mulai</span> untuk menyaring daftar. Angka di dalam kurung adalah jumlah siswa pada status itu. Kolom pencarian menerima nama, NIS, atau NISN.</p>
+
+<!-- ================= BAB 4 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 4</span>Membuka Blokir Siswa</h2>
+<p class="when"><b>Kapan dipakai:</b> saat layar siswa berubah merah bertuliskan <b>UJIAN TERKUNCI</b> dan siswa mengangkat tangan.</p>
+
+<h3>Mengapa siswa terkunci</h3>
+<p>Sistem mencatat pelanggaran setiap kali siswa pindah ke aplikasi atau tab lain, menarik status bar atau membuka layar terpisah, atau keluar dari layar penuh. Jika jumlahnya mencapai batas pada jadwal (misalnya 3 kali), ujian terkunci otomatis.</p>
+
+<figure class="modal wide"><img class="screen" src="img/pengawas/04-log-pelanggaran-crop.png" alt="Catatan pelanggaran siswa"><figcaption><b>Catatan pelanggaran</b> berisi jenis dan jam kejadian</figcaption></figure>
+
+<ol class="steps">
+  <li>Klik filter <span class="ui">Terblokir</span>. Hanya siswa yang terkunci yang tampil.</li>
+  <li>Klik tulisan merah <span class="ui">… Pelanggaran</span> pada baris siswa untuk melihat catatannya. Periksa sebelum membuka kunci.</li>
+  <li>Klik <span class="ui">Buka Blokir</span>. Kunci terbuka setelah muncul pemberitahuan <i>"Berhasil membuka blokir untuk (nama siswa)"</i>.</li>
+  <li>Minta siswa mengetuk <span class="ui">Periksa Status Pembukaan Kunci</span> di layarnya. Ujian berlanjut dengan jawaban yang sudah ada.</li>
+</ol>
+
+<div class="notes">
+  <div class="note warn"><span class="label">Perhatian</span>Waktu ujian tetap berjalan selama siswa terkunci. Bila perlu, beri tambahan waktu dengan tombol <b>+Waktu</b> (Bab 5).</div>
+  <div class="note danger"><span class="label">Penting</span>Jumlah pelanggaran tidak kembali ke nol. Satu pelanggaran lagi langsung mengunci ujian kembali. Sampaikan hal ini kepada siswa.</div>
+</div>
+
+<!-- ================= BAB 5 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 5</span>Menambah Waktu</h2>
+<p class="when"><b>Kapan dipakai:</b> ada kendala yang bukan kesalahan siswa, misalnya jaringan putus, perangkat diganti, atau siswa menunggu kunci dibuka.</p>
+
+<figure class="modal"><img class="screen" src="img/pengawas/05-tambah-waktu-crop.png" alt="Tambah waktu untuk satu siswa"><figcaption><b>Tambah Waktu Ujian Siswa</b></figcaption></figure>
+
+<h3>Untuk satu siswa</h3>
+<ol class="steps">
+  <li>Klik <span class="ui">+Waktu</span> pada baris siswa. Tombol ini hanya ada untuk siswa yang sedang mengerjakan atau terblokir.</li>
+  <li>Pilih <span class="ui">+5</span>, <span class="ui">+10</span>, <span class="ui">+15</span>, atau <span class="ui">+30 Mnt</span>, atau ketik jumlah menit sendiri.</li>
+  <li>Isi <span class="ui">Alasan Penambahan Waktu</span>. Alasan ini tercatat dan muncul di catatan aktivitas siswa.</li>
+  <li>Klik <span class="ui">Simpan &amp; Tambah Waktu</span>.</li>
+</ol>
+
+<h3>Untuk seluruh kelas</h3>
+<p>Klik <span class="ui">Tambah Waktu Kelas</span> di atas tabel, lalu isi dengan cara yang sama. Tambahan waktu diterapkan serentak kepada semua siswa yang sedang mengerjakan atau terblokir pada jadwal ini. Siswa yang sudah selesai tidak terpengaruh.</p>
+
+<!-- ================= BAB 6 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 6</span>Siswa Pindah Perangkat</h2>
+<p class="when"><b>Kapan dipakai:</b> HP siswa mati, rusak, atau siswa perlu pindah ke komputer sekolah.</p>
+
+<p>Satu akun siswa hanya aktif di satu perangkat. Saat siswa masuk di perangkat baru, perangkat lama otomatis keluar. Jadi untuk pindah perangkat, <b>siswa cukup masuk kembali di perangkat pengganti</b> dengan akun yang sama.</p>
+
+<ol class="steps">
+  <li>Minta siswa masuk dengan akun yang sama di perangkat pengganti.</li>
+  <li>Siswa memilih jadwal, mengisi token yang sama, lalu mengetuk <span class="ui">Mulai Kerjakan Ujian</span>.</li>
+  <li>Ujian berlanjut dengan sisa waktu dan jawaban yang sudah terkirim ke server.</li>
+</ol>
+
+<h3>Kapan tombol Reset HP dipakai</h3>
+<p>Klik <span class="ui">Reset HP</span> pada baris siswa bila Bapak/Ibu perlu <b>mengeluarkan siswa dari perangkat yang sedang dipakai</b>, misalnya akun siswa dipakai orang lain atau perangkat tertinggal dalam keadaan masuk. Setelah dikonfirmasi, perangkat itu keluar otomatis dan siswa harus masuk ulang.</p>
+
+<figure class="modal"><img class="screen" src="img/pengawas/06-reset-hp-crop.png" alt="Konfirmasi reset login perangkat"><figcaption><b>Konfirmasi Reset Login Perangkat</b></figcaption></figure>
+
+<div class="note warn"><span class="label">Perhatian</span>Jawaban yang belum sempat terkirim dari perangkat lama tidak ikut pindah. Jawaban yang sudah terkirim tetap tersimpan.</div>
+
+<!-- ================= BAB 7 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 7</span>Mengumpulkan Paksa</h2>
+<p class="when"><b>Kapan dipakai:</b> siswa tidak dapat melanjutkan ujian, meninggalkan ruangan, atau ujian harus ditutup atas keputusan panitia.</p>
+
+<figure class="modal"><img class="screen" src="img/pengawas/07-kumpulkan-paksa-crop.png" alt="Konfirmasi kumpulkan paksa"><figcaption><b>Kumpulkan Paksa Ujian Siswa</b></figcaption></figure>
+
+<ol class="steps">
+  <li>Klik <span class="ui">Selesaikan</span> pada baris siswa.</li>
+  <li>Baca konfirmasinya, lalu klik <span class="ui">Kumpulkan Paksa</span>.</li>
+  <li>Muncul pemberitahuan berisi nilai otomatis siswa. Status berubah menjadi <span class="ui">Selesai</span>.</li>
+</ol>
+
+<div class="note danger"><span class="label">Penting</span>Tindakan ini tidak bisa dibatalkan. Seluruh jawaban yang tersimpan di server langsung dinilai dan siswa tidak bisa membuka ujian itu lagi.</div>
+
+<!-- ================= BAB 8 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 8</span>Dokumen Ujian</h2>
+<p class="lead">Ketiga tombol dokumen ada di atas tabel pengawasan.</p>
+
+<table>
+  <thead><tr><th>Tombol</th><th>Hasilnya</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Rekap Nilai (.xlsx)</td><td>Berkas Excel berisi No, NIS, NISN, Nama Siswa, Kelas, Mulai Ujian, Selesai, Pelanggaran, Nilai Akhir, dan Status.</td></tr>
+    <tr><td class="key">Berita Acara (.pdf)</td><td>Berkas PDF berita acara pelaksanaan ujian beserta ringkasan kejadian.</td></tr>
+    <tr><td class="key">Cetak Dokumen</td><td>Membuka format cetak <b>Daftar Hadir</b> dan <b>Berita Acara</b> siap cetak A4.</td></tr>
+  </tbody>
+</table>
+
+<figure class="modal wide"><img class="screen" src="img/pengawas/09-cetak-dokumen-crop.png" alt="Format cetak dokumen resmi"><figcaption><b>Cetak Dokumen</b>: pilih Daftar Hadir atau Berita Acara</figcaption></figure>
+
+<ol class="steps">
+  <li>Klik <span class="ui">Cetak Dokumen</span>, lalu pilih <span class="ui">Daftar Hadir</span> atau <span class="ui">Berita Acara</span>.</li>
+  <li>Periksa kop, tahun pelajaran, dan nama penanda tangan.</li>
+  <li>Klik <span class="ui">Cetak / Print Dokumen</span>. Di jendela cetak, pilih kertas <b>A4</b> dan margin <b>Default</b> atau <b>None</b>.</li>
+</ol>
+
+<div class="note warn"><span class="label">Perhatian</span>Kolom jumlah hadir, tidak hadir, dan catatan kejadian pada dokumen cetak diisi tangan oleh pengawas.</div>
+
+<!-- ================= BAB 9 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 9</span>Tanya Jawab</h2>
+
+<table>
+  <thead><tr><th>Kejadian</th><th>Yang perlu dilakukan</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Jadwal tidak muncul di daftar siswa</td><td>Jadwal hanya tampil di rentang jam ujian, bila jadwal aktif dan bank soal sudah dikunci. Hubungi admin kurikulum bila jam sudah masuk tetapi jadwal belum tampil.</td></tr>
+    <tr><td class="key">Siswa lupa password</td><td>Hubungi admin kurikulum untuk mengganti password, atau gunakan No. Ujian dan password di kartu peserta.</td></tr>
+    <tr><td class="key">Tombol tindakan abu-abu</td><td>Bapak/Ibu tidak ditugaskan pada jadwal itu. Minta admin menambahkan Bapak/Ibu sebagai pengawas.</td></tr>
+    <tr><td class="key">Siswa terkunci lagi setelah dibuka</td><td>Jumlah pelanggaran tidak kembali ke nol, jadi satu pelanggaran baru langsung mengunci ujian. Periksa catatan, lalu putuskan apakah kunci dibuka lagi.</td></tr>
+    <tr><td class="key">Siswa kehilangan jaringan</td><td>Siswa tetap bisa mengerjakan; jawaban disimpan di HP dan terkirim saat jaringan kembali. Pastikan siswa tidak menutup browser.</td></tr>
+    <tr><td class="key">Siswa keluar sendiri dari akun</td><td>Siswa masuk ulang, pilih jadwal, dan isi token yang sama. Ujian berlanjut.</td></tr>
+    <tr><td class="key">Waktu ujian habis</td><td>Jawaban siswa otomatis dikumpulkan dan status berubah menjadi Selesai.</td></tr>
+  </tbody>
+</table>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panduan Admin Kurikulum CBT</title>
+<link rel="stylesheet" href="assets/manual.css">
+</head>
+<body>
+
+<section class="sheet cover">
+  <div class="cover-band"></div>
+  <div class="cover-body">
+    <img class="cover-logo" src="../../frontend/public/logo-smic.png" alt="Logo SMAS Islamic Centre Demak">
+    <div class="cover-school">SMAS ISLAMIC CENTRE DEMAK</div>
+    <div class="cover-foundation">Yayasan Islamic Centre Sultan Fatah Demak</div>
+    <div class="cover-rule"></div>
+    <div class="cover-kicker">Buku Panduan</div>
+    <h1 class="cover-title">Pengelolaan<br>Ujian CBT</h1>
+    <p class="cover-sub">Menyiapkan data master, event, jadwal, kartu peserta, dan hak akses pengguna.</p>
+    <span class="cover-role">Panduan Admin Kurikulum</span>
+  </div>
+  <div class="cover-foot">
+    <div><strong>Versi 1.0</strong>September 2026</div>
+    <div style="text-align:right"><strong>Tim Kurikulum</strong>SMAS Islamic Centre Demak</div>
+  </div>
+</section>
+
+<main class="sheet">
+
+<section class="toc">
+  <span class="chapter-no">Daftar Isi</span>
+  <h2>Isi Panduan</h2>
+  <ol>
+    <li><span class="n">1</span><span class="t">Urutan Persiapan Ujian<span class="d">Dari data master sampai hari pelaksanaan</span></span></li>
+    <li><span class="n">2</span><span class="t">Beranda Admin<span class="d">Ringkasan, kesiapan event, dan sesi login siswa</span></span></li>
+    <li><span class="n">3</span><span class="t">Data Kelas dan Mata Pelajaran<span class="d">Rombel dan daftar mapel</span></span></li>
+    <li><span class="n">4</span><span class="t">Guru, Staf, dan Hak Akses<span class="d">Akun pendidik dan izin setiap akun</span></span></li>
+    <li><span class="n">5</span><span class="t">Data Siswa<span class="d">Tambah, impor, ubah, dan sesi login</span></span></li>
+    <li><span class="n">6</span><span class="t">Kelas Mapel<span class="d">Memetakan mapel dan guru ke setiap kelas</span></span></li>
+    <li><span class="n">7</span><span class="t">Event Ujian<span class="d">Periode ujian seperti PTS, PAS, atau ASAT</span></span></li>
+    <li><span class="n">8</span><span class="t">Jadwal Ujian<span class="d">Sesi, token, pengawas, dan naskah soal</span></span></li>
+    <li><span class="n">9</span><span class="t">Kartu Peserta dan Kartu Meja<span class="d">Nomor ujian, password, dan QR login</span></span></li>
+    <li><span class="n">10</span><span class="t">Kesiapan Bank Soal dan Laporan<span class="d">Memantau naskah dan mengambil hasil ujian</span></span></li>
+    <li><span class="n">11</span><span class="t">Daftar Periksa Pekan Ujian<span class="d">Ringkasan tugas admin</span></span></li>
+  </ol>
+</section>
+
+<!-- ================= BAB 1 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 1</span>Urutan Persiapan Ujian</h2>
+<p class="lead">Setiap langkah membutuhkan data dari langkah sebelumnya. Kerjakan berurutan.</p>
+
+<ol class="steps">
+  <li><b>Data Kelas</b> dan <b>Mata Pelajaran</b> (Bab 3).</li>
+  <li><b>Guru dan Staf</b>, termasuk hak aksesnya (Bab 4).</li>
+  <li><b>Data Siswa</b>, masing-masing di kelasnya (Bab 5).</li>
+  <li><b>Kelas Mapel</b>: mapel apa diajarkan di kelas mana, oleh guru siapa (Bab 6).</li>
+  <li><b>Event Ujian</b>, misalnya PAS Ganjil (Bab 7).</li>
+  <li><b>Jadwal Ujian</b> untuk setiap kelas dan mapel, beserta pengawasnya (Bab 8).</li>
+  <li><b>Guru menyusun dan mengunci bank soal.</b> Admin memantau kesiapannya (Bab 10).</li>
+  <li><b>Tautkan naskah ke jadwal</b> bila belum tertaut otomatis (Bab 8).</li>
+  <li><b>Cetak kartu peserta</b> dan bagikan lewat wali kelas (Bab 9).</li>
+</ol>
+
+<div class="note info"><span class="label">Info</span>Siswa hanya melihat jadwal yang <b>aktif</b>, berada dalam <b>event aktif</b>, sudah <b>ditautkan ke bank soal yang terkunci</b>, dan sedang dalam <b>rentang jam ujian</b>. Bila salah satu belum terpenuhi, jadwal tidak tampil di layar siswa.</div>
+
+<!-- ================= BAB 2 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 2</span>Beranda Admin</h2>
+
+<figure><img class="screen" src="img/admin/01-beranda.png" alt="Beranda admin"><figcaption><b>Beranda</b> admin kurikulum</figcaption></figure>
+
+<table>
+  <thead><tr><th>Bagian</th><th>Fungsinya</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Kartu angka</td><td>Jumlah siswa, guru dan pengawas, kelas, serta jadwal ujian aktif.</td></tr>
+    <tr><td class="key">Kesiapan event ujian</td><td>Status tiap event beserta jumlah jadwalnya, dengan pintasan ke <span class="ui">Live proctor</span>.</td></tr>
+    <tr><td class="key">Pintasan Cepat</td><td><span class="ui">Buat Jadwal Baru</span>, <span class="ui">Impor Siswa Excel</span>, <span class="ui">Unggah Bank Soal</span>, dan <span class="ui">Buat Event Ujian</span>.</td></tr>
+    <tr><td class="key">Sesi Login Siswa Aktif</td><td>Siswa yang sedang masuk di suatu perangkat. <span class="ui">Reset Sesi</span> mengeluarkan siswa dari perangkat itu.</td></tr>
+  </tbody>
+</table>
+
+<p>Menu <span class="ui">Jadwal Ujian</span>, <span class="ui">Bank Soal &amp; Kesiapan</span>, dan <span class="ui">Live Proctoring</span> muncul setelah sebuah event dipilih (Bab 7). Klik <span class="ui">Semua Event</span> di menu kiri untuk kembali ke daftar event.</p>
+
+<!-- ================= BAB 3 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 3</span>Data Kelas dan Mata Pelajaran</h2>
+
+<h3>Data Kelas</h3>
+<figure class="half"><img class="screen" src="img/admin/21-kelas.png" alt="Data kelas"><figcaption><b>Data Kelas</b></figcaption></figure>
+<ol class="steps">
+  <li>Buka <span class="ui">Data Kelas</span>, klik <span class="ui">Tambah Kelas</span>.</li>
+  <li>Isi <span class="ui">Nama Kelas</span> (contoh <i>XII MIPA 2</i>), pilih <span class="ui">Tingkat</span> X, XI, atau XII, dan isi <span class="ui">Jurusan</span>.</li>
+  <li>Klik <span class="ui">Simpan Kelas</span>.</li>
+</ol>
+<p>Untuk banyak kelas sekaligus, klik <span class="ui">Impor Excel</span>, unduh template, lalu isi kolom <i>Nama Kelas</i>, <i>Tingkat (X/XI/XII)</i>, dan <i>Jurusan/Program</i>. Kelas dengan nama yang sudah ada dilewati.</p>
+
+<h3>Mata Pelajaran</h3>
+<p>Buka <span class="ui">Mata Pelajaran</span>, klik <span class="ui">Tambah Mapel</span>, lalu isi <span class="ui">Kode Mapel</span> (unik, tanpa spasi, contoh <kbd>MAT-WJB-XII</kbd>) dan <span class="ui">Nama Mata Pelajaran</span>. Impor Excel memakai kolom <i>Kode Mapel</i> dan <i>Nama Mata Pelajaran</i>; kode yang sudah ada dilewati.</p>
+
+<div class="note warn"><span class="label">Perhatian</span>Menghapus kelas dapat berdampak pada siswa dan alokasi mapel yang terhubung ke kelas itu. Pindahkan siswanya terlebih dulu.</div>
+
+<!-- ================= BAB 4 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 4</span>Guru, Staf, dan Hak Akses</h2>
+
+<figure class="half"><img class="screen" src="img/admin/18-guru-staf.png" alt="Guru dan staf"><figcaption><b>Guru dan Staf</b></figcaption></figure>
+
+<h3>Menambah akun</h3>
+<ol class="steps">
+  <li>Klik <span class="ui">Tambah Guru / Staf</span>.</li>
+  <li>Isi <span class="ui">Nama Lengkap &amp; Gelar</span>, <span class="ui">Username Login</span>, dan <span class="ui">Password</span>. Bila password dikosongkan, dipakai <kbd>guru123</kbd>.</li>
+  <li>Pilih template akses (lihat tabel), lalu simpan.</li>
+</ol>
+<p>Impor Excel memakai kolom <i>Nama Lengkap &amp; Gelar</i>, <i>Username Login</i>, <i>Password Awal</i>, dan <i>Role (GURU/ADMIN)</i>. Username yang sudah terdaftar dilewati.</p>
+<div class="note danger"><span class="label">Penting</span>Minta setiap guru segera mengganti password bawaan. Password <kbd>guru123</kbd> dan <kbd>siswa123</kbd> tercantum di template dan mudah ditebak.</div>
+
+<h3>Template akses</h3>
+<table>
+  <thead><tr><th>Template</th><th>Yang bisa dilakukan</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Administrator</td><td>Seluruh fitur dan data.</td></tr>
+    <tr><td class="key">Guru Pengampu</td><td>Mengelola bank soal mapel yang diampu (buat, unggah, ubah, kunci, cetak), melihat jadwal, mengawasi jadwal yang ditugaskan, dan mengekspor laporan.</td></tr>
+    <tr><td class="key">Pengawas Ujian</td><td>Melihat jadwal, mengawasi jadwal yang ditugaskan, dan mengekspor laporan.</td></tr>
+  </tbody>
+</table>
+
+<figure class="modal"><img class="screen" src="img/admin/19-edit-guru-crop.png" alt="Edit guru dan izin akun"><figcaption><b>Edit Data Guru / Staf</b>: template akses dan izin per akun</figcaption></figure>
+
+<p>Setelah memilih template, izin bisa ditambah atau dikurangi satu per satu di bagian <span class="ui">Izin Akun</span>. Akun yang izinnya diubah bertanda <span class="ui">Kustom</span>; klik <span class="ui">Kembalikan ke bawaan</span> untuk mengembalikannya. Izin bertanda <span class="ui">Sensitif</span> membuka data luas, misalnya <i>Lihat semua bank soal</i>, <i>Kendalikan semua jadwal</i>, <i>Kelola data master</i>, dan <i>Kelola akun pengguna</i>. Berikan hanya bila benar-benar diperlukan.</p>
+
+<!-- ================= BAB 5 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 5</span>Data Siswa</h2>
+
+<figure class="half"><img class="screen" src="img/admin/15-siswa.png" alt="Data siswa"><figcaption><b>Data Siswa</b>, kolom Sesi HP menunjukkan siswa yang sedang login</figcaption></figure>
+
+<h3>Menambah satu siswa</h3>
+<p>Klik <span class="ui">Tambah Siswa</span>, isi nama lengkap, username, password (bila kosong dipakai <kbd>siswa123</kbd>), NIS, NISN, rombel, dan jenis kelamin, lalu klik <span class="ui">Simpan Siswa</span>.</p>
+
+<h3>Mengimpor banyak siswa</h3>
+<div class="cols">
+  <figure class="keep" style="margin:0"><img class="screen" src="img/admin/17-impor-siswa-crop.png" alt="Impor siswa dari Excel"><figcaption><b>Impor Data Siswa dari Excel</b></figcaption></figure>
+  <ol class="steps">
+    <li>Di <span class="ui">Beranda</span>, klik pintasan <span class="ui">Impor Siswa Excel</span>.</li>
+    <li>Klik <span class="ui">Unduh Format</span>, lalu isi kolom <i>NIS</i>, <i>NISN</i>, <i>Nama Lengkap Siswa</i>, <i>Nama Kelas</i>, <i>Jenis Kelamin (L/P)</i>, dan <i>Password</i> (opsional).</li>
+    <li>Pilih berkas, lalu klik <span class="ui">Unggah &amp; Impor</span>.</li>
+  </ol>
+</div>
+<ul>
+  <li>Username siswa hasil impor adalah <b>NIS</b>-nya.</li>
+  <li>NIS yang sudah terdaftar dilewati, tidak diperbarui.</li>
+  <li>Password kosong diisi <kbd>siswa123</kbd>.</li>
+</ul>
+<div class="note danger"><span class="label">Penting</span>Tulis <i>Nama Kelas</i> persis sama dengan nama di Data Kelas. Siswa dengan nama kelas yang tidak dikenali dimasukkan ke kelas pertama dalam daftar, bukan ditolak. Periksa hasil impor per kelas setelah mengunggah.</div>
+
+<h3>Mengubah, sesi login, dan menghapus</h3>
+<ul>
+  <li><b>Ikon (i)</b>: rincian siswa. <b>Ikon pensil</b>: ubah data atau ganti password.</li>
+  <li><b>Sedang login</b> di kolom Sesi HP berarti siswa sedang masuk di suatu perangkat. Tombol <span class="ui">Reset</span> mengeluarkannya dari perangkat tersebut.</li>
+  <li><b>Hapus</b> juga menghapus riwayat nilai siswa. Gunakan hanya untuk data yang salah input.</li>
+</ul>
+
+<!-- ================= BAB 6 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 6</span>Kelas Mapel</h2>
+<p class="when"><b>Kapan dipakai:</b> awal tahun ajaran, dan setiap ada perubahan guru pengampu.</p>
+
+<figure class="half"><img class="screen" src="img/admin/23-kelas-mapel.png" alt="Kelas mapel"><figcaption><b>Kelas Mapel</b></figcaption></figure>
+
+<ol class="steps">
+  <li>Klik <span class="ui">+ Alokasikan Mapel</span>.</li>
+  <li>Pilih rombel, mata pelajaran, dan guru pengampu, lalu isi tahun ajaran.</li>
+  <li>Simpan.</li>
+</ol>
+<p>Data ini dipakai untuk tiga hal: pilihan saat membuat jadwal, bank soal yang dapat dilihat guru, dan daftar tugas di Beranda guru.</p>
+<div class="note info"><span class="label">Info</span>Jadwal ujian hanya bisa dibuat untuk pasangan kelas dan mapel yang sudah dialokasikan di sini.</div>
+
+<!-- ================= BAB 7 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 7</span>Event Ujian</h2>
+<p class="when"><b>Kapan dipakai:</b> sekali untuk setiap periode ujian, misalnya PTS, PAS, atau ASAT.</p>
+
+<figure class="modal wide"><img class="screen" src="img/admin/02-event.png" alt="Event ujian"><figcaption><b>Event Ujian</b></figcaption></figure>
+
+<div class="cols">
+  <figure class="keep" style="margin:0"><img class="screen" src="img/admin/03-buat-event-crop.png" alt="Buat event ujian"><figcaption><b>Buat Event Baru</b></figcaption></figure>
+  <ol class="steps">
+    <li>Buka <span class="ui">Event Ujian</span>, klik <span class="ui">Buat Event Baru</span>.</li>
+    <li>Isi judul, <span class="ui">Kode Unik Event</span> (contoh <kbd>ASAT-2026</kbd>), tahun ajaran, semester, tanggal mulai dan selesai, serta keterangan.</li>
+    <li>Centang <span class="ui">Setel sebagai Event Aktif</span> bila pekan ujian sedang berlangsung, lalu simpan.</li>
+    <li>Klik <span class="ui">Buka Event</span> untuk masuk ke jadwal, bank soal, dan pengawasan event ini.</li>
+  </ol>
+</div>
+
+<h3>Menu titik tiga</h3>
+<div class="cols">
+<figure class="keep" style="margin:0"><img class="screen" src="img/admin/04-menu-event-crop.png" alt="Menu event"><figcaption>Menu pada kartu event</figcaption></figure>
+<ul>
+  <li><b>Edit Event</b>: ubah data event.</li>
+  <li><b>Arsipkan Event / Aktifkan Event</b>: event arsip tidak tampil bagi siswa, dan No. Ujian dari kartu peserta event itu tidak bisa dipakai login.</li>
+  <li><b>Cetak Kartu Peserta</b>: lihat Bab 9.</li>
+  <li><b>Hapus Event</b>: event yang masih memiliki jadwal aktif tidak dapat dihapus.</li>
+</ul>
+</div>
+
+<!-- ================= BAB 8 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 8</span>Jadwal Ujian</h2>
+
+<figure><img class="screen" src="img/admin/07-jadwal.png" alt="Jadwal ujian"><figcaption><b>Jadwal Ujian</b> dalam satu event</figcaption></figure>
+
+<h3>Membuat jadwal</h3>
+<div class="cols">
+  <figure class="keep" style="margin:0"><img class="screen" src="img/admin/08-buat-jadwal-crop.png" alt="Buat jadwal ujian baru"><figcaption><b>Buat Jadwal Ujian Baru</b></figcaption></figure>
+  <ol class="steps">
+    <li>Klik <span class="ui">Buat Jadwal Ujian Baru</span>.</li>
+    <li>Pilih pasangan kelas dan mapel. Daftar hanya berisi alokasi Kelas Mapel yang belum dijadwalkan pada event ini.</li>
+    <li>Isi judul sesi, tanggal, jam mulai, dan jam selesai (WIB).</li>
+    <li>Periksa <span class="ui">Token Sesi</span>, isi <span class="ui">Durasi</span> dan <span class="ui">Max Pelanggaran</span>.</li>
+    <li>Pilih pengawas (bisa diatur belakangan), atur pengacakan soal dan opsi, lalu klik <span class="ui">Terbitkan Jadwal</span>.</li>
+  </ol>
+</div>
+
+<table>
+  <thead><tr><th>Isian</th><th>Keterangan</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Jam mulai / selesai</td><td>Batas kapan siswa bisa memulai ujian. Jadwal hanya tampil bagi siswa di antara dua jam ini.</td></tr>
+    <tr><td class="key">Durasi</td><td>Waktu pengerjaan tiap siswa sejak ia memulai. Tidak melewati jam selesai.</td></tr>
+    <tr><td class="key">Token Sesi</td><td>Kode yang diumumkan pengawas. Semua jadwal dengan tanggal dan jam mulai yang sama otomatis memakai token yang sama; mengubah token di satu jadwal ikut mengubah jadwal lain pada sesi itu.</td></tr>
+    <tr><td class="key">Max Pelanggaran</td><td>Jumlah pelanggaran sebelum ujian siswa terkunci otomatis.</td></tr>
+    <tr><td class="key">Acak Urutan Soal / Opsi</td><td>Urutan soal dan pilihan jawaban berbeda untuk tiap siswa, tetapi tetap sama bila siswa memuat ulang halaman.</td></tr>
+  </tbody>
+</table>
+
+<h3>Tindakan pada baris jadwal</h3>
+<table>
+  <thead><tr><th>Tombol</th><th>Fungsinya</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Ganti Soal / Tautkan Soal</td><td>Menautkan bank soal ke jadwal. Hanya bank berstatus <b>Terkunci</b> yang dapat dipakai siswa.</td></tr>
+    <tr><td class="key">Salin token</td><td>Ikon di samping token menyalinnya.</td></tr>
+    <tr><td class="key">Aktif / Nonaktif</td><td>Klik label status untuk mengubahnya. Jadwal tidak dapat diaktifkan bila bank soal belum ditautkan atau belum dikunci.</td></tr>
+    <tr><td class="key">Live Monitor</td><td>Membuka layar pengawasan jadwal ini.</td></tr>
+    <tr><td class="key">Ikon printer</td><td>Mencetak daftar hadir dan berita acara.</td></tr>
+    <tr><td class="key">Ikon (i)</td><td>Rincian jadwal dan tab <span class="ui">Koreksi Essay</span>.</td></tr>
+    <tr><td class="key">Ikon perisai</td><td>Mengatur pengawas jadwal.</td></tr>
+    <tr><td class="key">Ikon pensil / tempat sampah</td><td>Mengubah atau menghapus jadwal.</td></tr>
+  </tbody>
+</table>
+
+<div class="cols">
+  <figure class="keep" style="margin:0"><img class="screen" src="img/admin/11-atur-pengawas-crop.png" alt="Atur pengawas"><figcaption><b>Atur Pengawas</b></figcaption></figure>
+  <figure class="keep" style="margin:0"><img class="screen" src="img/admin/12-tautkan-soal-crop.png" alt="Tautkan naskah bank soal"><figcaption><b>Tautkan Naskah Bank Soal</b></figcaption></figure>
+</div>
+
+<h3>Tindakan untuk banyak jadwal</h3>
+<p>Centang beberapa jadwal, maka muncul bilah tindakan: <span class="ui">Aktifkan Terpilih</span>, <span class="ui">Nonaktifkan</span>, dan <span class="ui">Samakan Token</span>. Samakan Token memberi satu token baru untuk semua jadwal terpilih, termasuk jadwal lain yang tanggal dan jam mulainya sama.</p>
+
+<div class="note warn"><span class="label">Perhatian</span>Jangan mengganti token saat ujian sedang berlangsung. Siswa yang belum memulai harus memakai token baru.</div>
+
+<!-- ================= BAB 9 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 9</span>Kartu Peserta dan Kartu Meja</h2>
+<p class="when"><b>Kapan dipakai:</b> setelah semua jadwal event dibuat, beberapa hari sebelum ujian.</p>
+
+<ol class="steps">
+  <li>Di <span class="ui">Event Ujian</span>, klik menu titik tiga pada event, lalu <span class="ui">Cetak Kartu Peserta</span>.</li>
+  <li>Bila muncul keterangan siswa belum memiliki nomor ujian, klik <span class="ui">Buat Nomor Ujian</span>.</li>
+  <li>Pilih <span class="ui">Kartu Peserta</span> atau <span class="ui">Kartu Meja</span>, lalu saring per kelas bila perlu.</li>
+  <li>Klik tombol cetak. Gunakan kertas <b>A4</b>, margin <b>Default/None</b>, skala <b>100%</b>.</li>
+</ol>
+
+<figure class="modal wide"><img class="screen" src="img/admin/05-kartu-peserta-crop.png" alt="Cetak kartu peserta"><figcaption><b>Kartu Peserta</b>: nama, kelas, No. Ujian, password, dan QR login</figcaption></figure>
+
+<table>
+  <thead><tr><th>Jenis kartu</th><th>Isi dan penggunaan</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Kartu Peserta</td><td>Memuat <b>password</b>. Dibagikan lewat wali kelas dan dipegang siswa. Siswa login dengan No. Ujian dan password selama event aktif.</td></tr>
+    <tr><td class="key">Kartu Meja</td><td>Tanpa password, No. Ujian dicetak besar. Ditempel di meja ujian.</td></tr>
+  </tbody>
+</table>
+<p>Peserta diambil dari siswa di kelas yang memiliki jadwal pada event ini. QR pada kartu membuka halaman login dengan No. Ujian terisi; password tidak ikut di QR.</p>
+
+<div class="note danger"><span class="label">Penting</span><span class="ui">Buat ulang nomor &amp; password</span> mengganti nomor ujian dan password <b>seluruh</b> peserta event. Kartu yang sudah dicetak tidak berlaku lagi dan harus dicetak ulang.</div>
+
+<!-- ================= BAB 10 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 10</span>Kesiapan Bank Soal dan Laporan</h2>
+
+<figure><img class="screen" src="img/admin/14-bank-soal.png" alt="Bank soal dan kesiapan"><figcaption><b>Bank Soal &amp; Kesiapan</b>: jumlah soal dan status tiap naskah</figcaption></figure>
+
+<p>Gunakan filter <span class="ui">Terkunci</span> dan <span class="ui">Draft</span> untuk melihat naskah yang belum siap. Kartu di atas menunjukkan total bank soal, total butir, jumlah terkunci, dan jumlah draf. Cara menyusun, mengunci, dan mencetak naskah dijelaskan di <b>Panduan Guru</b>.</p>
+
+<h3>Laporan hasil ujian</h3>
+<p>Buka <span class="ui">Live Proctoring</span>, pilih sesi, lalu gunakan tombol <span class="ui">Rekap Nilai (.xlsx)</span>, <span class="ui">Berita Acara (.pdf)</span>, atau <span class="ui">Cetak Dokumen</span>. Rinciannya ada di <b>Panduan Pengawas</b> Bab 8. Nilai soal essay bertambah setelah guru menyelesaikan koreksi.</p>
+
+<div class="note warn"><span class="label">Perhatian</span>Sebelum mencetak daftar hadir dan berita acara, periksa kop surat, tahun pelajaran, serta nama dan NIP penanda tangan. Bagian itu belum mengikuti data event secara otomatis.</div>
+
+<!-- ================= BAB 11 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 11</span>Daftar Periksa Pekan Ujian</h2>
+
+<div class="cols">
+  <div class="keep">
+    <h3>Dua minggu sebelum</h3>
+    <ul class="checklist">
+      <li>Data kelas, mapel, guru, dan siswa lengkap</li>
+      <li>Kelas Mapel sesuai pembagian tugas mengajar</li>
+      <li>Event ujian dibuat</li>
+      <li>Jadwal seluruh kelas dan mapel diterbitkan</li>
+      <li>Pengawas ditugaskan di setiap jadwal</li>
+    </ul>
+    <h3>Tiga hari sebelum</h3>
+    <ul class="checklist">
+      <li>Semua bank soal berstatus <b>Terkunci</b></li>
+      <li>Semua jadwal tertaut ke bank soal</li>
+      <li>Kartu peserta dicetak dan dibagikan</li>
+      <li>Kartu meja dicetak</li>
+    </ul>
+  </div>
+  <div class="keep">
+    <h3>Hari ujian</h3>
+    <ul class="checklist">
+      <li>Event berstatus aktif</li>
+      <li>Jadwal hari ini berstatus aktif</li>
+      <li>Pengawas bisa membuka Live Proctoring</li>
+      <li>Admin siaga untuk reset password dan sesi login</li>
+    </ul>
+    <h3>Setelah pekan ujian</h3>
+    <ul class="checklist">
+      <li>Guru menyelesaikan koreksi essay</li>
+      <li>Rekap nilai dan berita acara diunduh</li>
+      <li>Event diarsipkan</li>
+    </ul>
+  </div>
+</div>
+
+</main>
+</body>
+</html>

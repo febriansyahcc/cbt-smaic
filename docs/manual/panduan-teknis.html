@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panduan Teknis CBT</title>
+<link rel="stylesheet" href="assets/manual.css">
+</head>
+<body>
+
+<section class="sheet cover">
+  <div class="cover-band"></div>
+  <div class="cover-body">
+    <img class="cover-logo" src="../../frontend/public/logo-smic.png" alt="Logo SMAS Islamic Centre Demak">
+    <div class="cover-school">SMAS ISLAMIC CENTRE DEMAK</div>
+    <div class="cover-foundation">Yayasan Islamic Centre Sultan Fatah Demak</div>
+    <div class="cover-rule"></div>
+    <div class="cover-kicker">Buku Panduan</div>
+    <h1 class="cover-title">Instalasi dan<br>Perawatan Server</h1>
+    <p class="cover-sub">Memasang, menjalankan, mencadangkan, dan memperbarui server CBT sekolah.</p>
+    <span class="cover-role">Panduan Teknis</span>
+  </div>
+  <div class="cover-foot">
+    <div><strong>Versi 1.0</strong>September 2026</div>
+    <div style="text-align:right"><strong>Tim IT</strong>SMAS Islamic Centre Demak</div>
+  </div>
+</section>
+
+<main class="sheet">
+
+<section class="toc">
+  <span class="chapter-no">Daftar Isi</span>
+  <h2>Isi Panduan</h2>
+  <ol>
+    <li><span class="n">1</span><span class="t">Gambaran Sistem<span class="d">Komponen dan kebutuhan server</span></span></li>
+    <li><span class="n">2</span><span class="t">Instalasi Pertama<span class="d">Komputer Windows dan server Linux</span></span></li>
+    <li><span class="n">3</span><span class="t">Setelah Instalasi<span class="d">Akun bawaan dan data contoh</span></span></li>
+    <li><span class="n">4</span><span class="t">Operasional Harian<span class="d">Menjalankan, menghentikan, dan melihat log</span></span></li>
+    <li><span class="n">5</span><span class="t">Cadangan dan Pemulihan Data<span class="d">Basis data dan berkas unggahan</span></span></li>
+    <li><span class="n">6</span><span class="t">Pembaruan Aplikasi<span class="d">Update otomatis yang aman saat ujian</span></span></li>
+    <li><span class="n">7</span><span class="t">Mengatasi Masalah<span class="d">Gejala umum dan penanganannya</span></span></li>
+  </ol>
+</section>
+
+<!-- ================= BAB 1 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 1</span>Gambaran Sistem</h2>
+<p class="lead">CBT berjalan sebagai tiga kontainer Docker di satu server. Siswa dan staf mengaksesnya lewat browser di jaringan sekolah.</p>
+
+<table>
+  <thead><tr><th>Kontainer</th><th>Isi</th><th>Catatan</th></tr></thead>
+  <tbody>
+    <tr><td class="key">cbt-frontend</td><td>Tampilan web (Nginx)</td><td>Satu-satunya yang membuka port ke jaringan, bawaan port 80. Meneruskan <code>/api</code> ke backend.</td></tr>
+    <tr><td class="key">cbt-backend</td><td>Server aplikasi (Go)</td><td>Port 8080 di jaringan internal Docker. Health check di <code>/health</code>.</td></tr>
+    <tr><td class="key">cbt-postgres</td><td>Basis data PostgreSQL 16</td><td>Data disimpan di volume <code>cbt_postgres_data</code>.</td></tr>
+  </tbody>
+</table>
+
+<h3>Kebutuhan</h3>
+<ul>
+  <li><b>Docker</b>: Docker Desktop (Windows) atau Docker Engine dengan Compose (Linux), dalam keadaan berjalan.</li>
+  <li><b>Jaringan lokal</b>: server dan perangkat siswa berada di jaringan yang sama. Beri server alamat IP tetap agar alamat ujian tidak berubah.</li>
+  <li><b>Akses internet untuk perangkat siswa dan staf</b>: tampilan memuat huruf dari Google Fonts dan gaya rumus (KaTeX) dari <code>cdn.jsdelivr.net</code>. Tanpa internet, aplikasi tetap berjalan dengan huruf cadangan, tetapi tampilan rumus matematika bisa berantakan.</li>
+</ul>
+
+<h3>Waktu server</h3>
+<p>Batas waktu ujian dihitung dari jam server, bukan jam perangkat siswa. Pastikan jam server tepat dan zona waktunya <code>Asia/Jakarta</code> (variabel <code>TZ</code>).</p>
+
+<!-- ================= BAB 2 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 2</span>Instalasi Pertama</h2>
+
+<h3>Langkah 1. Siapkan berkas .env</h3>
+<p>Salin <code>.env.example</code> menjadi <code>.env</code> di folder yang sama dengan <code>docker-compose.yml</code>, lalu isi:</p>
+<table>
+  <thead><tr><th>Variabel</th><th>Isi</th></tr></thead>
+  <tbody>
+    <tr><td class="key">JWT_SECRET</td><td><b>Wajib.</b> Nilai acak minimal 32 karakter. Buat dengan <code>openssl rand -hex 32</code>. Backend menolak berjalan bila kosong, kurang dari 32 karakter, atau sama dengan nilai contoh lama.</td></tr>
+    <tr><td class="key">DB_PASSWORD</td><td><b>Wajib diganti</b> dari nilai contoh. Password basis data.</td></tr>
+    <tr><td class="key">DB_USER, DB_NAME</td><td>Bawaan <code>cbt_user</code> dan <code>cbt_db</code>.</td></tr>
+    <tr><td class="key">APP_PORT</td><td>Port web, bawaan <code>80</code>.</td></tr>
+    <tr><td class="key">TZ</td><td><code>Asia/Jakarta</code>.</td></tr>
+  </tbody>
+</table>
+<div class="note danger"><span class="label">Penting</span>Setelah basis data pertama kali dibuat, jangan mengganti <code>DB_PASSWORD</code> di <code>.env</code> tanpa mengganti password di PostgreSQL juga. Backend tidak akan bisa terhubung.</div>
+
+<h3>Langkah 2a. Komputer Windows (dibangun dari kode sumber)</h3>
+<ol class="steps">
+  <li>Buka Docker Desktop dan tunggu sampai berstatus berjalan.</li>
+  <li>Klik ganda <code>docker-start.bat</code>, atau jalankan <code>.\docker-start.ps1</code> di PowerShell dari folder proyek.</li>
+  <li>Setelah muncul <i>[SUKSES] Sistem CBT berhasil dijalankan</i>, buka <code>http://localhost</code> di server, atau <code>http://&lt;IP-server&gt;</code> dari perangkat lain.</li>
+</ol>
+<p>Untuk menghentikan: klik ganda <code>docker-stop.bat</code>.</p>
+
+<h3>Langkah 2b. Server Linux (image siap pakai)</h3>
+<pre>cd /opt/cbt/deploy
+bash setup.sh        # membuat .env dari contoh bila belum ada, lalu berhenti
+nano .env            # isi JWT_SECRET dan DB_PASSWORD
+bash setup.sh        # menarik image dan menjalankan sistem</pre>
+<p>Skrip menampilkan status kontainer dan alamat akses di akhir.</p>
+
+<!-- ================= BAB 3 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 3</span>Setelah Instalasi</h2>
+
+<h3>Akun bawaan</h3>
+<p>Saat basis data masih kosong, sistem otomatis membuat data contoh beserta akun berikut:</p>
+<table>
+  <thead><tr><th>Peran</th><th>Username</th><th>Password</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Admin kurikulum</td><td><code>admin</code></td><td><code>admin123</code></td></tr>
+    <tr><td class="key">Guru / pengawas</td><td><code>guru1</code></td><td><code>guru123</code></td></tr>
+    <tr><td class="key">Siswa contoh</td><td><code>siswa1</code> – <code>siswa3</code></td><td><code>siswa123</code></td></tr>
+  </tbody>
+</table>
+<div class="note danger"><span class="label">Penting</span>Password ini tercantum di dokumentasi publik proyek. Segera ganti password <b>admin</b> lewat menu <b>Guru dan Staf</b>, lalu hapus akun dan data contoh sebelum dipakai ujian sungguhan.</div>
+
+<h3>Membersihkan data contoh</h3>
+<p>Skrip <code>deploy/cleanup-dummy-data.sql</code> menghapus data percobaan dari semua master data, kecuali akun <code>admin</code>. Periksa dan sesuaikan daftar username di dalamnya, buat cadangan (Bab 5), lalu jalankan:</p>
+<pre>docker exec -i cbt-postgres psql -U cbt_user -d cbt_db &lt; cleanup-dummy-data.sql</pre>
+<div class="note warn"><span class="label">Perhatian</span>Penghapusan bersifat permanen.</div>
+
+<!-- ================= BAB 4 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 4</span>Operasional Harian</h2>
+
+<table>
+  <thead><tr><th>Keperluan</th><th>Perintah (dari folder yang berisi docker-compose.yml)</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Status kontainer</td><td><code>docker compose ps</code></td></tr>
+    <tr><td class="key">Menjalankan</td><td><code>docker compose up -d</code></td></tr>
+    <tr><td class="key">Menghentikan</td><td><code>docker compose down</code></td></tr>
+    <tr><td class="key">Memulai ulang</td><td><code>docker compose restart</code></td></tr>
+    <tr><td class="key">Log semua layanan</td><td><code>docker compose logs -f</code></td></tr>
+    <tr><td class="key">Log backend saja</td><td><code>docker compose logs -f backend</code></td></tr>
+  </tbody>
+</table>
+<p>Di server yang memiliki <code>make</code>, tersedia pintasan <code>make up</code>, <code>make down</code>, <code>make restart</code>, <code>make logs</code>, <code>make logs-backend</code>, dan <code>make ps</code>.</p>
+<div class="note danger"><span class="label">Penting</span><code>docker compose down</code> aman karena volume data tidak ikut terhapus. Jangan menambahkan opsi <code>-v</code>: opsi itu menghapus volume basis data.</div>
+
+<!-- ================= BAB 5 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 5</span>Cadangan dan Pemulihan Data</h2>
+<p class="when"><b>Kapan dipakai:</b> sebelum dan sesudah pekan ujian, sebelum pembaruan besar, dan sebelum menjalankan skrip pembersihan.</p>
+
+<h3>Mencadangkan basis data</h3>
+<pre>docker exec cbt-postgres pg_dump -U cbt_user -Fc -f /tmp/cbt.dump cbt_db
+docker cp cbt-postgres:/tmp/cbt.dump ./cbt-2026-09-27.dump</pre>
+<p>Ganti tanggal pada nama berkas. Simpan salinannya di luar server, misalnya di diska eksternal.</p>
+
+<h3>Memulihkan basis data</h3>
+<pre>docker cp ./cbt-2026-09-27.dump cbt-postgres:/tmp/cbt.dump
+docker exec cbt-postgres pg_restore -U cbt_user -d cbt_db --clean --if-exists /tmp/cbt.dump
+docker compose restart backend</pre>
+<div class="note danger"><span class="label">Penting</span>Pemulihan menimpa seluruh data saat ini. Jangan lakukan saat ujian berlangsung.</div>
+
+<h3>Berkas unggahan (gambar soal)</h3>
+<p>Pada instalasi <code>deploy/</code>, gambar yang diunggah guru tersimpan di volume <code>cbt_uploads_data</code>. Cadangkan dengan:</p>
+<pre>docker run --rm -v cbt_uploads_data:/data -v "$PWD":/backup alpine tar czf /backup/uploads-2026-09-27.tgz -C /data .</pre>
+<div class="note warn"><span class="label">Perhatian</span><code>docker-compose.yml</code> di folder utama proyek (dipakai <code>docker-start.bat</code>) belum memiliki volume untuk folder unggahan. Pada instalasi itu, gambar soal tersimpan di dalam kontainer dan dapat hilang saat kontainer dibangun ulang.</div>
+
+<!-- ================= BAB 6 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 6</span>Pembaruan Aplikasi</h2>
+<p>Instalasi <code>deploy/</code> mendukung pembaruan otomatis lewat <code>deploy/auto-update.sh</code>. Skrip ini:</p>
+<ul>
+  <li>memeriksa image baru di Docker Hub,</li>
+  <li>hanya memasang image yang lolos verifikasi tanda tangan <b>cosign</b> dari alur rilis resmi,</li>
+  <li><b>menunda pembaruan selama ada jadwal ujian aktif</b> atau sesi siswa yang belum selesai.</li>
+</ul>
+
+<h3>Memasang jadwal pembaruan</h3>
+<pre>chmod +x /opt/cbt/deploy/auto-update.sh
+sudo crontab -e
+# tambahkan baris berikut (cek setiap 10 menit):
+*/10 * * * * /opt/cbt/deploy/auto-update.sh &gt;&gt; /var/log/cbt-auto-update.log 2&gt;&amp;1</pre>
+<p>Server membutuhkan program <code>cosign</code> dan akses HTTPS keluar ke <code>registry-1.docker.io</code>, <code>auth.docker.io</code>, <code>tuf-repo-cdn.sigstore.dev</code>, dan <code>rekor.sigstore.dev</code>. Langkah pemasangan cosign ada di <code>docs/PANDUAN_OPERASIONAL.md</code> bagian 6.</p>
+
+<table>
+  <thead><tr><th>Keperluan</th><th>Perintah</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Melihat riwayat pembaruan</td><td><code>tail -f /var/log/cbt-auto-update.log</code></td></tr>
+    <tr><td class="key">Menjeda pembaruan</td><td><code>touch /opt/cbt/deploy/.update-paused</code></td></tr>
+    <tr><td class="key">Mengaktifkan lagi</td><td><code>rm /opt/cbt/deploy/.update-paused</code></td></tr>
+    <tr><td class="key">Memperbarui sekarang</td><td><code>FORCE=1 /opt/cbt/deploy/auto-update.sh</code> (hanya di luar jam ujian)</td></tr>
+  </tbody>
+</table>
+<div class="note info"><span class="label">Info</span>Untuk kembali ke versi tertentu: ubah <code>image:</code> di <code>deploy/docker-compose.yml</code> ke tag versinya, buat berkas <code>.update-paused</code>, lalu jalankan <code>docker compose up -d</code>.</div>
+
+<!-- ================= BAB 7 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 7</span>Mengatasi Masalah</h2>
+
+<table>
+  <thead><tr><th>Gejala</th><th>Penyebab dan penanganan</th></tr></thead>
+  <tbody>
+    <tr><td class="msg">Backend berhenti dengan pesan "JWT_SECRET minimal 32 karakter"</td><td>Isi <code>JWT_SECRET</code> di <code>.env</code> dengan hasil <code>openssl rand -hex 32</code>, lalu jalankan ulang.</td></tr>
+    <tr><td class="msg">docker-start.bat: "Gagal menjalankan Docker Compose"</td><td>Docker Desktop belum berjalan. Buka Docker Desktop, tunggu sampai aktif, lalu ulangi.</td></tr>
+    <tr><td class="msg">Halaman tidak bisa dibuka dari perangkat lain</td><td>Periksa IP server, firewall untuk port <code>APP_PORT</code>, dan pastikan perangkat berada di jaringan yang sama.</td></tr>
+    <tr><td class="msg">Port 80 sudah dipakai</td><td>Hentikan layanan lain di port 80, atau ubah <code>APP_PORT</code> lalu akses dengan <code>http://&lt;IP&gt;:&lt;port&gt;</code>.</td></tr>
+    <tr><td class="msg">Log backend: "Falling back to SQLite"</td><td>Backend gagal terhubung ke PostgreSQL dan beralih ke berkas SQLite lokal. Data yang masuk tidak tersimpan di basis data utama. Periksa kontainer <code>cbt-postgres</code> dan isian <code>DB_*</code>, lalu mulai ulang backend.</td></tr>
+    <tr><td class="msg">Rumus matematika tampil berantakan</td><td>Perangkat tidak dapat mengakses <code>cdn.jsdelivr.net</code>. Pastikan jaringan sekolah mengizinkan akses ke alamat itu.</td></tr>
+    <tr><td class="msg">Jadwal tidak muncul bagi siswa</td><td>Periksa jam server dan zona waktu, lalu minta admin memeriksa status event, jadwal, dan kunci bank soal.</td></tr>
+  </tbody>
+</table>
+
+</main>
+</body>
+</html>
