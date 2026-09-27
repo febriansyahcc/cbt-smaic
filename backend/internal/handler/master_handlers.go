@@ -120,10 +120,20 @@ func (h *Handlers) HandleDeleteClass(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "message": "Kelas berhasil dihapus"})
 }
 
+// studentListItem menambahkan status sesi login; token sesinya sendiri tidak pernah dikirim.
+type studentListItem struct {
+	domain.StudentProfile
+	HasActiveSession bool `json:"has_active_session"`
+}
+
 func (h *Handlers) HandleGetStudents(c *fiber.Ctx) error {
 	var profiles []domain.StudentProfile
 	h.repo.DB.Preload("User").Preload("ClassRoom").Find(&profiles)
-	return c.JSON(fiber.Map{"success": true, "data": profiles})
+	items := make([]studentListItem, 0, len(profiles))
+	for _, p := range profiles {
+		items = append(items, studentListItem{StudentProfile: p, HasActiveSession: p.User.SessionToken != ""})
+	}
+	return c.JSON(fiber.Map{"success": true, "data": items})
 }
 
 type CreateStudentRequest struct {

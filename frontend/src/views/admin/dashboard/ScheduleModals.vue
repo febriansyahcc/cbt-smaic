@@ -291,6 +291,7 @@
           ]"
         >Informasi</button>
         <button
+          v-if="canGradeEssay(selectedScheduleDetail)"
           type="button"
           @click="switchToEssayTab()"
           :class="[
@@ -636,5 +637,6 @@ const {
   submitScheduleForm,
   switchTab,
   switchToEssayTab,
+  canGradeEssay,
 } = useDashboard()
 </script>

@@ -151,11 +151,11 @@
         <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
           <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Status Sesi HP</span>
           <span class="mt-0.5 block">
-            <span v-if="selectedStudentDetail.user?.session_token" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 inline-block">
-              🔒 Terkunci di Perangkat
+            <span v-if="selectedStudentDetail.has_active_session" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 inline-block">
+              Sedang login
             </span>
             <span v-else class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 inline-block">
-              Bebas (Siap Login)
+              Belum login
             </span>
           </span>
         </div>
@@ -164,11 +164,11 @@
       <div class="pt-2 flex items-center justify-between border-t border-slate-100">
         <div class="flex items-center gap-2">
           <button
-            v-if="selectedStudentDetail.user?.session_token"
+            v-if="selectedStudentDetail.has_active_session"
             @click="resetStudentSession(selectedStudentDetail)"
             class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs rounded-xl transition cursor-pointer"
           >
-            🔓 Reset Sesi HP
+            Reset Sesi
           </button>
           <button
             @click="showStudentDetailModal = false; openEditStudent(selectedStudentDetail)"

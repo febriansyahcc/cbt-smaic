@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panduan Guru CBT</title>
+<link rel="stylesheet" href="assets/manual.css">
+</head>
+<body>
+
+<section class="sheet cover">
+  <div class="cover-band"></div>
+  <div class="cover-body">
+    <img class="cover-logo" src="../../frontend/public/logo-smic.png" alt="Logo SMAS Islamic Centre Demak">
+    <div class="cover-school">SMAS ISLAMIC CENTRE DEMAK</div>
+    <div class="cover-foundation">Yayasan Islamic Centre Sultan Fatah Demak</div>
+    <div class="cover-rule"></div>
+    <div class="cover-kicker">Buku Panduan</div>
+    <h1 class="cover-title">Penyusunan<br>Bank Soal</h1>
+    <p class="cover-sub">Membuat naskah, mengisi butir soal, mengunci naskah, mencetak soal, dan menilai jawaban essay.</p>
+    <span class="cover-role">Panduan Guru</span>
+  </div>
+  <div class="cover-foot">
+    <div><strong>Versi 1.0</strong>September 2026</div>
+    <div style="text-align:right"><strong>Tim Kurikulum</strong>SMAS Islamic Centre Demak</div>
+  </div>
+</section>
+
+<main class="sheet">
+
+<section class="toc">
+  <span class="chapter-no">Daftar Isi</span>
+  <h2>Isi Panduan</h2>
+  <ol>
+    <li><span class="n">1</span><span class="t">Alur Penyusunan Soal<span class="d">Urutan kerja dari naskah kosong sampai siap diujikan</span></span></li>
+    <li><span class="n">2</span><span class="t">Beranda Guru<span class="d">Membaca tugas yang perlu diselesaikan</span></span></li>
+    <li><span class="n">3</span><span class="t">Membuat Bank Soal<span class="d">Satu naskah untuk satu mata pelajaran</span></span></li>
+    <li><span class="n">4</span><span class="t">Menambah Soal Satu per Satu<span class="d">Pilihan ganda, jawaban singkat, dan essay</span></span></li>
+    <li><span class="n">5</span><span class="t">Mengunggah Soal dari Excel<span class="d">Mengisi banyak soal sekaligus</span></span></li>
+    <li><span class="n">6</span><span class="t">Memeriksa dan Mengunci Naskah<span class="d">Pratinjau tampilan siswa dan penguncian</span></span></li>
+    <li><span class="n">7</span><span class="t">Mencetak Naskah dan Kunci Jawaban<span class="d">Cadangan kertas dan arsip</span></span></li>
+    <li><span class="n">8</span><span class="t">Menilai Jawaban Essay<span class="d">Koreksi manual setelah ujian</span></span></li>
+  </ol>
+  <div class="note info"><span class="label">Info</span>Untuk tugas mengawasi ruang ujian, gunakan <b>Panduan Pengawas</b>.</div>
+</section>
+
+<!-- ================= BAB 1 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 1</span>Alur Penyusunan Soal</h2>
+<p class="lead">Naskah soal baru bisa dipakai ujian setelah dikunci. Ikuti urutan berikut.</p>
+
+<ol class="steps">
+  <li><b>Buat bank soal</b> untuk mata pelajaran yang Bapak/Ibu ampu (Bab 3).</li>
+  <li><b>Isi butir soal</b> satu per satu (Bab 4) atau unggah dari Excel (Bab 5).</li>
+  <li><b>Periksa</b> dengan <span class="ui">Pratinjau</span>, seperti yang akan dilihat siswa (Bab 6).</li>
+  <li><b>Kunci naskah.</b> Status berubah dari <span class="ui">Draft</span> menjadi <span class="ui">Terkunci</span> (Bab 6).</li>
+  <li><b>Admin kurikulum menautkan naskah ke jadwal ujian</b>, lalu mengaktifkan jadwalnya.</li>
+  <li><b>Cetak naskah dan kunci jawaban</b> bila diperlukan (Bab 7).</li>
+  <li><b>Setelah ujian</b>, nilai jawaban essay (Bab 8).</li>
+</ol>
+
+<table>
+  <thead><tr><th>Status naskah</th><th>Artinya</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Draft</td><td>Masih disusun. Soal bisa ditambah, diubah, dihapus, atau diunggah dari Excel. Jadwal yang memakai naskah ini <b>tidak bisa diaktifkan</b> dan tidak tampil bagi siswa.</td></tr>
+    <tr><td class="key">Terkunci</td><td>Siap diujikan. Soal tidak bisa diubah. Naskah bisa dicetak.</td></tr>
+  </tbody>
+</table>
+
+<figure><img class="screen" src="img/guru/01-bank-soal.png" alt="Daftar bank soal"><figcaption><b>Bank Soal &amp; Kesiapan</b>: status Draft atau Terkunci tampil di kolom Status</figcaption></figure>
+
+<!-- ================= BAB 2 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 2</span>Beranda Guru</h2>
+<p class="when"><b>Kapan dipakai:</b> setiap kali masuk, untuk melihat pekerjaan yang belum selesai.</p>
+
+<figure><img class="screen" src="img/pengawas/01-beranda-guru.png" alt="Beranda guru"><figcaption><b>Beranda</b> guru dan pengawas</figcaption></figure>
+
+<table>
+  <thead><tr><th>Kartu</th><th>Artinya</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Jadwal Saya</td><td>Jadwal ujian mata pelajaran yang Bapak/Ibu ampu.</td></tr>
+    <tr><td class="key">Bank Soal Saya</td><td>Jumlah naskah, beserta berapa yang sudah terkunci dan masih draf.</td></tr>
+    <tr><td class="key">Perlu Dibuat</td><td>Jadwal yang belum memiliki bank soal.</td></tr>
+    <tr><td class="key">Perlu Diselesaikan</td><td>Bank soal yang masih kosong atau belum dikunci.</td></tr>
+    <tr><td class="key">Tugas Mengawasi</td><td>Jadwal yang menugaskan Bapak/Ibu sebagai pengawas.</td></tr>
+  </tbody>
+</table>
+<p>Bagian <span class="ui">Perlu Tindakan</span> merangkum pekerjaan tersebut beserta tombol untuk langsung mengerjakannya. Bila semuanya selesai, tertulis <i>"Semua tugas Anda sudah beres."</i></p>
+<p>Menu <span class="ui">Bank Soal &amp; Kesiapan</span> dan <span class="ui">Jadwal Ujian</span> muncul setelah Bapak/Ibu memilih event ujian lewat tombol <span class="ui">Pilih Event</span>.</p>
+
+<!-- ================= BAB 3 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 3</span>Membuat Bank Soal</h2>
+<p class="when"><b>Kapan dipakai:</b> sekali untuk setiap mata pelajaran dan angkatan yang diujikan pada suatu event.</p>
+
+<figure class="modal narrow"><img class="screen" src="img/guru/03-buat-bank-soal-crop.png" alt="Buat paket bank soal baru"><figcaption><b>Buat Paket Bank Soal Baru</b></figcaption></figure>
+
+<ol class="steps">
+  <li>Buka menu <span class="ui">Bank Soal &amp; Kesiapan</span>, lalu klik <span class="ui">Buat Bank Soal</span>.</li>
+  <li>Pilih <span class="ui">Cakupan Bank Soal</span>:
+    <ul>
+      <li><b>Per Angkatan</b>: satu naskah untuk seluruh kelas di tingkat tersebut. Pilihan ini yang umum dipakai.</li>
+      <li><b>Pilih Kelas</b>: naskah khusus untuk kelas tertentu. Kelas yang dicoret sudah punya bank soal untuk mapel itu.</li>
+    </ul>
+  </li>
+  <li>Pilih mata pelajaran, lalu isi <span class="ui">Judul / Nama Paket Bank Soal</span>, misalnya <i>ASAT Matematika Wajib Kelas XII</i>.</li>
+  <li>Klik <span class="ui">Simpan Bank Soal</span>. Naskah baru berstatus <span class="ui">Draft</span>.</li>
+</ol>
+<div class="note info"><span class="label">Info</span>Daftar pilihan berisi mata pelajaran dan tingkat yang dijadwalkan pada event ini dan masih memiliki kelas tanpa bank soal. Bila tertulis <i>"Seluruh mata pelajaran jadwal event ini sudah memiliki bank soal"</i>, naskahnya sudah ada di daftar.</div>
+
+<!-- ================= BAB 4 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 4</span>Menambah Soal Satu per Satu</h2>
+<p class="when"><b>Kapan dipakai:</b> jumlah soal sedikit, atau soal memuat gambar dan rumus.</p>
+
+<figure class="modal wide"><img class="screen" src="img/guru/07-form-soal-crop.png" alt="Form tambah butir soal"><figcaption><b>Tambah Butir Soal Baru</b></figcaption></figure>
+
+<ol class="steps">
+  <li>Klik angka <span class="ui">… Soal</span> pada kolom Jumlah Soal untuk membuka daftar butir soal, lalu klik <span class="ui">Tambah Soal</span>.</li>
+  <li>Periksa <span class="ui">Nomor Urut Soal</span>, pilih <span class="ui">Tipe / Model Soal</span>, dan isi <span class="ui">Bobot Nilai</span> (biasanya 1).</li>
+  <li>Tulis pertanyaan di kolom <span class="ui">Konten Pertanyaan</span>. Hasilnya langsung terlihat di <span class="ui">Pratinjau Tampilan Konten</span>.</li>
+  <li>Isi jawaban sesuai tipe soal (lihat tabel), lalu simpan.</li>
+</ol>
+
+<table>
+  <thead><tr><th>Tipe soal</th><th>Cara mengisi jawaban</th></tr></thead>
+  <tbody>
+    <tr><td class="key">Pilihan Ganda (PG)</td><td>Isi teks pilihan A sampai E. Klik bulatan di kiri pilihan yang benar sebagai kunci. Tiap pilihan bisa diberi gambar lewat tombol <span class="ui">Gambar</span>.</td></tr>
+    <tr><td class="key">Jawaban Singkat</td><td>Isi kunci jawaban. Pisahkan variasi jawaban yang diterima dengan tanda <kbd>|</kbd>, contoh <kbd>Nusantara|IKN|Ibu Kota Nusantara</kbd>. Huruf besar atau kecil tidak berpengaruh.</td></tr>
+    <tr><td class="key">Essay / Uraian</td><td>Isi pedoman penilaian (opsional) sebagai acuan saat mengoreksi. Soal essay dinilai manual (Bab 8).</td></tr>
+  </tbody>
+</table>
+
+<h3>Gambar, rumus, dan teks khusus</h3>
+<ul>
+  <li><b>Gambar:</b> tekan <kbd>Ctrl</kbd>+<kbd>V</kbd> di kolom pertanyaan untuk menempel screenshot, seret berkas gambar ke kolom, atau klik <span class="ui">Unggah Gambar</span>.</li>
+  <li><b>Rumus:</b> tulis di antara tanda dolar, contoh <kbd>$x^2 + 1$</kbd>. Gunakan <kbd>$$ … $$</kbd> agar rumus tampil di baris tersendiri. Tombol <kbd>\frac{a}{b}</kbd>, <kbd>\sqrt{x}</kbd>, dan <kbd>\int</kbd> menyisipkan pola rumus yang sering dipakai.</li>
+  <li><b>Teks Arab dan Korea</b> dapat diketik atau ditempel langsung.</li>
+</ul>
+
+<h3>Mengubah, menghapus, dan mengurutkan soal</h3>
+<figure class="modal wide"><img class="screen" src="img/guru/04-daftar-butir-crop.png" alt="Daftar butir soal"><figcaption><b>Daftar butir soal</b>, kunci ditandai hijau</figcaption></figure>
+<p>Di daftar butir soal, gunakan ikon pensil untuk mengubah dan ikon tempat sampah untuk menghapus. Seret kartu soal ke atas atau ke bawah untuk mengubah nomor urut.</p>
+
+<!-- ================= BAB 5 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 5</span>Mengunggah Soal dari Excel</h2>
+<p class="when"><b>Kapan dipakai:</b> soal sudah disiapkan di spreadsheet dan jumlahnya banyak.</p>
+
+<figure class="modal narrow"><img class="screen" src="img/guru/08-unggah-excel-crop.png" alt="Unggah butir soal Excel"><figcaption><b>Unggah Butir Soal Excel</b></figcaption></figure>
+
+<ol class="steps">
+  <li>Klik <span class="ui">Unggah Soal</span> pada baris bank soal.</li>
+  <li>Klik <span class="ui">Unduh Format</span> untuk mengambil <i>Template_Bank_Soal_CBT.xlsx</i>, lalu isi soal di berkas itu.</li>
+  <li>Pastikan <span class="ui">Bank Soal Tujuan</span> sudah benar, lalu pilih berkas Excel.</li>
+  <li>Klik <span class="ui">Impor Soal</span>. Muncul pemberitahuan jumlah soal yang berhasil diimpor.</li>
+</ol>
+
+<table>
+  <thead><tr><th>Kolom template</th><th>Isi</th></tr></thead>
+  <tbody>
+    <tr><td class="key">No</td><td>Nomor urut soal.</td></tr>
+    <tr><td class="key">Tipe Soal</td><td><kbd>PG</kbd>, <kbd>ISIAN</kbd>, atau <kbd>ESSAY</kbd>. Bila kosong, dianggap PG.</td></tr>
+    <tr><td class="key">Pertanyaan (Soal)</td><td>Teks soal. Rumus boleh ditulis dengan tanda dolar.</td></tr>
+    <tr><td class="key">Opsi A – Opsi E</td><td>Pilihan jawaban untuk soal PG. Kosongkan untuk ISIAN dan ESSAY.</td></tr>
+    <tr><td class="key">Kunci / Jawaban Benar</td><td>PG: huruf kunci, misalnya <kbd>C</kbd>. ISIAN: jawaban, variasinya dipisah <kbd>|</kbd>.</td></tr>
+    <tr><td class="key">Pedoman Rubrik (Essay)</td><td>Pedoman penilaian untuk soal essay.</td></tr>
+    <tr><td class="key">Bobot</td><td>Nilai soal. Bila kosong, dianggap 1.</td></tr>
+  </tbody>
+</table>
+
+<div class="notes">
+  <div class="note warn"><span class="label">Perhatian</span>Soal dari Excel <b>ditambahkan</b> ke soal yang sudah ada, bukan menggantikannya. Hapus soal lama dulu bila ingin mengganti isi naskah.</div>
+  <div class="note info"><span class="label">Info</span>Unggah hanya bisa dilakukan pada naskah berstatus <b>Draft</b>. Naskah terkunci akan menolak unggahan.</div>
+</div>
+
+<!-- ================= BAB 6 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 6</span>Memeriksa dan Mengunci Naskah</h2>
+
+<h3>Pratinjau tampilan siswa</h3>
+<figure class="modal narrow"><img class="screen" src="img/guru/11-pratinjau-crop.png" alt="Pratinjau tampilan siswa"><figcaption><b>Pratinjau</b> meniru layar HP siswa</figcaption></figure>
+<p>Klik <span class="ui">Pratinjau</span> pada baris bank soal untuk mencoba naskah seperti siswa. Periksa teks, gambar, rumus, dan kunci jawaban. Jawaban di pratinjau tidak tersimpan.</p>
+
+<h3>Mengunci naskah</h3>
+<ol class="steps">
+  <li>Klik <span class="ui">Kunci Naskah</span> pada baris bank soal.</li>
+  <li>Baca konfirmasinya, lalu klik <span class="ui">Kunci Naskah</span>. Status berubah menjadi <span class="ui">Terkunci</span>.</li>
+</ol>
+<p>Untuk memperbaiki soal, klik <span class="ui">Buka Kunci</span>. Status kembali menjadi <span class="ui">Draft</span>; setelah selesai, kunci lagi.</p>
+
+<div class="note danger"><span class="label">Penting</span>Jangan membuka kunci naskah saat ujian sedang berlangsung. Selama naskah berstatus Draft, jadwalnya tidak tampil bagi siswa dan siswa tidak bisa memulai ujian.</div>
+
+<!-- ================= BAB 7 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 7</span>Mencetak Naskah dan Kunci Jawaban</h2>
+<p class="when"><b>Kapan dipakai:</b> menyiapkan cadangan ujian kertas atau arsip naskah. Hanya untuk naskah yang sudah terkunci.</p>
+
+<figure class="modal wide"><img class="screen" src="img/guru/10-cetak-naskah-crop.png" alt="Cetak naskah soal"><figcaption><b>Cetak Naskah Soal</b></figcaption></figure>
+
+<ol class="steps">
+  <li>Klik <span class="ui">Cetak</span> pada baris bank soal.</li>
+  <li>Pilih <span class="ui">Naskah Soal</span> atau <span class="ui">Kunci Jawaban</span>.</li>
+  <li>Pilih ukuran kertas (<b>A4</b> atau <b>F4 / Folio</b>) dan jumlah kolom (1 atau 2).</li>
+  <li>Klik <span class="ui">Cetak Naskah Soal</span>. Di jendela cetak, gunakan margin <b>Default</b> dan skala <b>100%</b>.</li>
+</ol>
+<div class="note warn"><span class="label">Perhatian</span>Simpan kunci jawaban cetak di tempat aman. Urutan soal pada naskah cetak mengikuti urutan bank, bukan urutan acak yang dilihat siswa.</div>
+
+<!-- ================= BAB 8 ================= -->
+<h2 class="chapter"><span class="chapter-no">Bab 8</span>Menilai Jawaban Essay</h2>
+<p class="when"><b>Kapan dipakai:</b> setelah ujian, bila naskah memuat soal essay.</p>
+
+<p>Soal pilihan ganda dan jawaban singkat dinilai otomatis saat siswa mengumpulkan. Soal essay perlu dinilai guru.</p>
+<div class="note info"><span class="label">Siapa yang menilai</span>Essay dinilai oleh <b>guru pengampu kelas dan mata pelajaran jadwal itu</b>, sesuai data Kelas Mapel, serta admin kurikulum. Pengawas ruang dan pembuat soal yang tidak mengajar kelas itu tidak melihat tab Koreksi Essay. Bila tab tidak muncul di kelas yang Bapak/Ibu ajar, minta admin memeriksa data Kelas Mapel.</div>
+
+<ol class="steps">
+  <li>Buka menu <span class="ui">Jadwal Ujian</span>, lalu klik ikon <span class="ui">(i) Rincian Informasi Detail</span> pada jadwal yang dimaksud.</li>
+  <li>Buka tab <span class="ui">Koreksi Essay</span>. Setiap soal menampilkan jawaban siswa satu per satu, beserta keterangan berapa yang sudah dinilai.</li>
+  <li>Isi <span class="ui">Nilai</span> dan <span class="ui">Komentar</span> bila perlu. Nilai tidak boleh melebihi bobot soal; sistem menolak nilai yang lebih besar.</li>
+  <li>Klik <span class="ui">Simpan Penilaian Soal No. …</span> untuk setiap soal.</li>
+</ol>
+
+<figure class="modal narrow"><img class="screen" src="img/admin/09-detail-jadwal-crop.png" alt="Rincian informasi jadwal"><figcaption><b>Rincian Informasi Jadwal</b> dengan tab Koreksi Essay</figcaption></figure>
+
+</main>
+</body>
+</html>

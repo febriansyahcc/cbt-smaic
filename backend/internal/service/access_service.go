@@ -396,10 +396,29 @@ func (s *AccessService) CanExportSchedule(user domain.User, scheduleID uuid.UUID
 	if err := s.repo.DB.First(&sched, "id = ?", scheduleID).Error; err != nil {
 		return errors.Is(err, gorm.ErrRecordNotFound)
 	}
+	return s.teachesSchedule(user, sched)
+}
+
+// CanGradeEssay menentukan apakah pengguna boleh membaca dan menilai jawaban essay sebuah jadwal.
+// Lolos bila administrator (peran ADMIN atau izin "*"), atau guru yang mengampu pasangan kelas
+// dan mata pelajaran jadwal di class_subjects. Pengawas dan pembuat bank soal yang tidak mengampu
+// kelas itu tidak berhak.
+func (s *AccessService) CanGradeEssay(user domain.User, scheduleID uuid.UUID) bool {
+	if user.HasPermission(string(domain.PermAll)) {
+		return true
+	}
+	var sched domain.ExamSchedule
+	if err := s.repo.DB.First(&sched, "id = ?", scheduleID).Error; err != nil {
+		return false
+	}
+	return s.teachesSchedule(user, sched)
+}
+
+// teachesSchedule bernilai benar bila pengguna mengampu pasangan kelas dan mapel jadwal.
+func (s *AccessService) teachesSchedule(user domain.User, sched domain.ExamSchedule) bool {
 	if sched.SubjectID == nil {
 		return false
 	}
-
 	var count int64
 	s.repo.DB.Model(&domain.ClassSubject{}).
 		Where("teacher_id = ? AND class_room_id = ? AND subject_id = ?", user.ID, sched.ClassRoomID, *sched.SubjectID).

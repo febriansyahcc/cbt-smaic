@@ -22,6 +22,8 @@ api.interceptors.response.use(
       const code = error.response.data?.code
       if (code === 'CONCURRENT_LOGIN') {
         sessionStorage.setItem('cbt_login_error', 'Sesi Anda berakhir: Akun Anda telah digunakan untuk login di perangkat lain.')
+      } else if (code === 'SESSION_ENDED') {
+        sessionStorage.setItem('cbt_login_error', 'Sesi login Anda telah diakhiri. Silakan login kembali.')
       }
       localStorage.removeItem('cbt_token')
       localStorage.removeItem('cbt_user')

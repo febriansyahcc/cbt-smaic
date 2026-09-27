@@ -109,6 +109,13 @@ export function useSchedules(ctx) {
     }
   }
 
+  // Koreksi essay hanya untuk administrator dan guru pengampu kelas + mapel jadwal (sama dengan aturan server).
+  const canGradeEssay = (sch) => {
+    const u = authStore.user
+    if (u?.role === 'ADMIN' || (u?.permissions || []).includes('*')) return true
+    return Array.isArray(sch?.relations) && sch.relations.includes('mengampu')
+  }
+
   const switchToEssayTab = () => {
     scheduleDetailTab.value = 'essay'
     if (essayQuestions.value.length === 0 && !essayLoading.value && selectedScheduleDetail.value) {
@@ -885,6 +892,7 @@ export function useSchedules(ctx) {
     selectedScheduleIds,
     toggleScheduleSort,
     openScheduleDetail,
+    canGradeEssay,
     switchToEssayTab,
     essayTotalPending,
     saveEssayQuestion,

@@ -85,3 +85,5 @@ JWT_SECRET=<isi dengan hasil: openssl rand -hex 32>
 * **Token Ruang Ujian Aktif:** `CBT2026`
 
 Dokumentasi lengkap operasional: [docs/PANDUAN_OPERASIONAL.md](docs/PANDUAN_OPERASIONAL.md).
+
+Buku panduan pengguna per peran (siswa, pengawas, guru, admin, teknis): [docs/manual](docs/manual/README.md).

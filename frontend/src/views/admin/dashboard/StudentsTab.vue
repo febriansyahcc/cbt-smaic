@@ -16,9 +16,9 @@
           <div class="text-2xl font-black text-pink-700 mt-1">{{ femaleStudentsCount }} <span class="text-xs font-medium text-pink-400">Siswi</span></div>
         </div>
         <div :class="['rounded-3xl p-4 border shadow-xs transition', lockedStudentsCount > 0 ? 'bg-amber-50 border-amber-300' : 'bg-white border-slate-200']">
-          <span :class="['text-[11px] font-semibold', lockedStudentsCount > 0 ? 'text-amber-800 font-bold' : 'text-slate-500']">🔒 Sesi HP Terkunci</span>
+          <span :class="['text-[11px] font-semibold', lockedStudentsCount > 0 ? 'text-amber-800 font-bold' : 'text-slate-500']">Sedang Login</span>
           <div :class="['text-2xl font-black mt-1', lockedStudentsCount > 0 ? 'text-amber-800' : 'text-slate-900']">
-            {{ lockedStudentsCount }} <span class="text-xs font-medium opacity-75">Perlu Reset</span>
+            {{ lockedStudentsCount }} <span class="text-xs font-medium opacity-75">Siswa</span>
           </div>
         </div>
       </div>
@@ -220,23 +220,23 @@
                 </td>
                 <td class="py-3 px-4 font-semibold text-indigo-700 whitespace-nowrap">{{ st.class_room?.name }}</td>
                 <td class="py-3 px-4 text-center">
-                  <span v-if="st.user?.session_token" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
-                    🔒 Terkunci
+                  <span v-if="st.has_active_session" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                    Sedang login
                   </span>
                   <span v-else class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
-                    Bebas
+                    Belum login
                   </span>
                 </td>
                 <td class="py-3 px-4 text-right">
                   <div class="flex items-center justify-end gap-1.5">
                     <!-- Reset Sesi HP Button (if locked) -->
                     <button
-                      v-if="st.user?.session_token"
+                      v-if="st.has_active_session"
                       @click="resetStudentSession(st)"
                       class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-xl text-[10px] border border-amber-300 transition flex items-center gap-1 cursor-pointer"
-                      title="Lepas kunci sesi login HP agar siswa bisa login di perangkat lain"
+                      title="Keluarkan siswa dari perangkat yang sedang dipakai"
                     >
-                      <span>🔓 Reset</span>
+                      <span>Reset</span>
                     </button>
 
                     <!-- Detail Button -->

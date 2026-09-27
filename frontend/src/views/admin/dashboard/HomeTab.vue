@@ -316,7 +316,7 @@
           <span class="text-xs font-semibold text-slate-600 shrink-0">{{ activeLoginSessions.length }} sesi aktif</span>
         </div>
         <p class="text-xs text-slate-500">
-          Setiap siswa hanya dapat login di satu perangkat. Reset sesi bila siswa berpindah perangkat.
+          Setiap siswa hanya aktif di satu perangkat; login baru otomatis mengeluarkan perangkat lama. Reset sesi untuk mengeluarkan siswa dari perangkat yang sedang dipakai.
         </p>
 
         <div v-if="activeLoginSessions.length > 0" class="space-y-2 pt-1">

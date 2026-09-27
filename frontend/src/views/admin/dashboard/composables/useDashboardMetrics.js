@@ -25,7 +25,7 @@ export function useDashboardMetrics(ctx) {
     return ev ? ev.code : 'Semua Event'
   })
 
-  const lockedStudentsCount = computed(() => students.value.filter(s => s.user?.session_token).length)
+  const lockedStudentsCount = computed(() => students.value.filter(s => s.has_active_session).length)
   const maleStudentsCount = computed(() => students.value.filter(s => s.gender === 'L' || s.user?.gender === 'L').length)
   const femaleStudentsCount = computed(() => students.value.filter(s => s.gender === 'P' || s.user?.gender === 'P').length)
   // Guru dan Pengawas = semua akun non-Administrator (termasuk Kustom), sehingga jumlahnya konsisten dengan Total

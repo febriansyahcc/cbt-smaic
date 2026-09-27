@@ -81,7 +81,7 @@ export function useStudents(ctx) {
 
     // Filter by Session
     if (selectedStudentSessionFilter.value === 'locked') {
-      list = list.filter(st => st.user?.session_token)
+      list = list.filter(st => st.has_active_session)
     }
 
     // Filter by Search Query
@@ -118,8 +118,8 @@ export function useStudents(ctx) {
           const valB = (b.class_room?.name || '').trim().toLowerCase()
           result = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' })
         } else if (studentSortKey.value === 'session') {
-          const lockA = a.user?.session_token ? 1 : 0
-          const lockB = b.user?.session_token ? 1 : 0
+          const lockA = a.has_active_session ? 1 : 0
+          const lockB = b.has_active_session ? 1 : 0
           result = lockA - lockB
         }
         return studentSortOrder.value === 'asc' ? result : -result
@@ -165,17 +165,17 @@ export function useStudents(ctx) {
 
   const resetStudentSession = async (st) => {
     const confirmed = await showConfirmModal({
-      title: 'Lepas Kunci Sesi Login',
-      message: `Lepas kunci sesi login untuk ${st.user?.full_name}? Siswa dapat segera login kembali di perangkat baru.`,
+      title: 'Akhiri Sesi Login',
+      message: `Akhiri sesi login ${st.user?.full_name}? Perangkat yang sedang dipakai akan keluar otomatis dan siswa perlu login ulang.`,
       type: 'warning',
-      confirmText: 'Lepas Kunci',
+      confirmText: 'Akhiri Sesi',
       cancelText: 'Batal'
     })
     if (!confirmed) return
 
     try {
       await api.post(`/admin/users/${st.user_id}/reset-session`)
-      showToast(`✓ Kunci sesi login HP ${st.user?.full_name} berhasil dilepas!`, 'success')
+      showToast(`Sesi login ${st.user?.full_name} berhasil diakhiri`, 'success')
       const res = await api.get('/admin/students')
       students.value = res.data.data || []
     } catch (e) {
@@ -189,10 +189,10 @@ export function useStudents(ctx) {
 
   const resetUserSession = async (u) => {
     const confirmed = await showConfirmModal({
-      title: 'Lepas Kunci Sesi Login',
-      message: `Lepas kunci sesi login untuk pengguna ${u.username}? Siswa akan dapat login kembali di perangkat baru.`,
+      title: 'Akhiri Sesi Login',
+      message: `Akhiri sesi login ${u.username}? Perangkat yang sedang dipakai akan keluar otomatis dan siswa perlu login ulang.`,
       type: 'warning',
-      confirmText: 'Lepas Kunci',
+      confirmText: 'Akhiri Sesi',
       cancelText: 'Batal'
     })
     if (!confirmed) return

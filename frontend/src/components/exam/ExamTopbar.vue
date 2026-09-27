@@ -1,18 +1,18 @@
 <template>
   <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30 px-3 py-2 sm:px-6">
-    <div class="max-w-5xl mx-auto flex items-center justify-between">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
       <!-- Left: Subject & Info -->
-      <div class="flex items-center space-x-2">
+      <div class="flex items-center gap-2 min-w-0 flex-1">
         <img
           src="/logo-smic.png"
           alt="SMAS Islamic Centre Demak"
           class="w-8 h-8 object-contain drop-shadow-xs shrink-0"
         />
-        <div class="leading-tight">
-          <h1 class="text-xs sm:text-sm font-semibold text-slate-900 truncate max-w-[130px] sm:max-w-xs">
+        <div class="leading-tight min-w-0">
+          <h1 class="text-xs sm:text-sm font-semibold text-slate-900 truncate sm:max-w-xs">
             {{ examStore.subjectName }}
           </h1>
-          <p class="text-[10px] sm:text-xs text-slate-500 truncate max-w-[130px] sm:max-w-xs">
+          <p class="text-[10px] sm:text-xs text-slate-500 truncate sm:max-w-xs">
             {{ examStore.scheduleTitle }}
           </p>
         </div>
@@ -20,10 +20,10 @@
 
       <!-- Center: Monospace Authoritative Countdown Timer -->
       <div 
-        class="flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs sm:text-sm font-bold shadow-inner"
+        class="shrink-0 flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold shadow-inner"
         :class="timerClass"
       >
-        <svg class="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="hidden min-[360px]:block w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <span class="font-mono tabular-timer tracking-wider">
@@ -32,7 +32,7 @@
       </div>
 
       <!-- Right: Sync Status & Submit Button -->
-      <div class="flex items-center space-x-2">
+      <div class="shrink-0 flex items-center space-x-1.5 sm:space-x-2">
         <!-- Network & Sync Indicator: dot selalu tampil, teks hanya di sm+ -->
         <div
           class="flex items-center space-x-1 text-[11px] font-medium px-1.5 sm:px-2 py-1 rounded-full"
