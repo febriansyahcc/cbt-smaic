@@ -133,6 +133,7 @@
 
 <h3>Menambah satu siswa</h3>
 <p>Klik <span class="ui">Tambah Siswa</span>, isi nama lengkap, username, password (bila kosong dipakai <kbd>siswa123</kbd>), NIS, NISN, rombel, dan jenis kelamin, lalu klik <span class="ui">Simpan Siswa</span>.</p>
+<div class="note info"><span class="label">Info</span>Saat ujian, siswa masuk memakai <b>No. Ujian dan password kartu peserta</b> (Bab 9). Password akun di sini tidak dibagikan kepada siswa.</div>
 
 <h3>Mengimpor banyak siswa</h3>
 <div class="cols">
@@ -148,6 +149,7 @@
   <li>NIS yang sudah terdaftar dilewati, tidak diperbarui.</li>
   <li>Password kosong diisi <kbd>siswa123</kbd>.</li>
 </ul>
+<div class="note danger"><span class="label">Penting</span>Akun siswa tetap bisa dipakai masuk dengan NIS dan password akun, di samping kartu peserta. Karena <kbd>siswa123</kbd> mudah ditebak, isi kolom <i>Password</i> di template dengan password acak untuk setiap siswa agar akun tidak bisa dipakai orang lain.</div>
 <div class="note danger"><span class="label">Penting</span>Tulis <i>Nama Kelas</i> persis sama dengan nama di Data Kelas. Siswa dengan nama kelas yang tidak dikenali dimasukkan ke kelas pertama dalam daftar, bukan ditolak. Periksa hasil impor per kelas setelah mengunggah.</div>
 
 <h3>Mengubah, sesi login, dan menghapus</h3>
@@ -267,11 +269,12 @@
 <table>
   <thead><tr><th>Jenis kartu</th><th>Isi dan penggunaan</th></tr></thead>
   <tbody>
-    <tr><td class="key">Kartu Peserta</td><td>Memuat <b>password</b>. Dibagikan lewat wali kelas dan dipegang siswa. Siswa login dengan No. Ujian dan password selama event aktif.</td></tr>
+    <tr><td class="key">Kartu Peserta</td><td>Memuat <b>password</b>. Dibagikan lewat wali kelas dan dipegang siswa. <b>Inilah yang dipakai siswa untuk login</b> selama event aktif.</td></tr>
     <tr><td class="key">Kartu Meja</td><td>Tanpa password, No. Ujian dicetak besar. Ditempel di meja ujian.</td></tr>
   </tbody>
 </table>
-<p>Peserta diambil dari siswa di kelas yang memiliki jadwal pada event ini. QR pada kartu membuka halaman login dengan No. Ujian terisi; password tidak ikut di QR.</p>
+<p>Peserta diambil dari siswa di kelas yang memiliki jadwal pada event ini. No. Ujian tersusun dari kode event, digit tingkat (X = 1, XI = 2, XII = 3), dan nomor urut. Password berupa 6 huruf dan angka acak. QR pada kartu membuka halaman login dengan No. Ujian terisi; password tidak ikut di QR.</p>
+<p><b>Kartu hilang:</b> buka Cetak Kartu Peserta, saring kelas siswa itu, lalu cetak ulang. Nomor dan password tidak berubah, jadi kartu lain tetap berlaku.</p>
 
 <div class="note danger"><span class="label">Penting</span><span class="ui">Buat ulang nomor &amp; password</span> mengganti nomor ujian dan password <b>seluruh</b> peserta event. Kartu yang sudah dicetak tidak berlaku lagi dan harus dicetak ulang.</div>
 
@@ -314,7 +317,7 @@
       <li>Event berstatus aktif</li>
       <li>Jadwal hari ini berstatus aktif</li>
       <li>Pengawas bisa membuka Live Proctoring</li>
-      <li>Admin siaga untuk reset password dan sesi login</li>
+      <li>Admin siaga untuk mencetak ulang kartu hilang dan mereset sesi login</li>
     </ul>
     <h3>Setelah pekan ujian</h3>
     <ul class="checklist">
