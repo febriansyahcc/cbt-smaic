@@ -216,7 +216,14 @@ type ExamSchedule struct {
 	RandomizeQuestions bool          `gorm:"default:true" json:"randomize_questions"`
 	RandomizeOptions   bool          `gorm:"default:true" json:"randomize_options"`
 	IsActive           bool          `gorm:"default:true" json:"is_active"`
+	IsMakeup           bool          `gorm:"default:false" json:"is_makeup"`
 	CreatedAt          time.Time     `json:"created_at"`
+}
+
+type ExamMakeupStudent struct {
+	ScheduleID uuid.UUID `gorm:"type:uuid;primaryKey;not null" json:"schedule_id"`
+	StudentID  uuid.UUID `gorm:"type:uuid;primaryKey;not null" json:"student_id"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type ExamSession struct {

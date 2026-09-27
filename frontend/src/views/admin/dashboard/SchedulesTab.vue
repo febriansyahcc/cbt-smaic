@@ -329,6 +329,9 @@
                   >
                     {{ sch.subject.name }}
                   </span>
+                  <span v-if="sch.is_makeup" class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-[10px] font-bold">
+                    Susulan
+                  </span>
                 </div>
                 <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
                   <span class="font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">

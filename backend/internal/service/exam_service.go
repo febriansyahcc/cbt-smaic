@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -69,8 +70,10 @@ func (s *ExamService) GetStudentSchedules(studentUserID uuid.UUID) ([]domain.Exa
 		return nil, errors.New("profil siswa tidak ditemukan")
 	}
 
-	var schedules []domain.ExamSchedule
 	now := time.Now()
+
+	// Query 1: schedule non-susulan untuk kelas siswa
+	var regularSchedules []domain.ExamSchedule
 	err := s.repo.DB.
 		Preload("Event").
 		Preload("Subject").
@@ -79,13 +82,41 @@ func (s *ExamService) GetStudentSchedules(studentUserID uuid.UUID) ([]domain.Exa
 		Preload("ClassRoom").
 		Joins("LEFT JOIN exam_events ON exam_events.id = exam_schedules.event_id").
 		Joins("LEFT JOIN question_banks ON question_banks.id = exam_schedules.bank_id").
-		Where("class_room_id = ? AND exam_schedules.is_active = ? AND start_time <= ? AND end_time >= ? AND (exam_schedules.event_id IS NULL OR exam_events.is_active = ?) AND exam_schedules.bank_id IS NOT NULL AND question_banks.is_locked = ?",
-			profile.ClassRoomID, true, now, now, true, true).
+		Where("class_room_id = ? AND exam_schedules.is_active = ? AND start_time <= ? AND end_time >= ? AND (exam_schedules.event_id IS NULL OR exam_events.is_active = ?) AND exam_schedules.bank_id IS NOT NULL AND question_banks.is_locked = ? AND exam_schedules.is_makeup = ?",
+			profile.ClassRoomID, true, now, now, true, true, false).
 		Order("start_time ASC").
-		Find(&schedules).Error
+		Find(&regularSchedules).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query 2: schedule susulan di mana siswa ada di whitelist
+	var makeupSchedules []domain.ExamSchedule
+	err = s.repo.DB.
+		Preload("Event").
+		Preload("Subject").
+		Preload("Bank").
+		Preload("Bank.Subject").
+		Preload("ClassRoom").
+		Joins("LEFT JOIN exam_events ON exam_events.id = exam_schedules.event_id").
+		Joins("LEFT JOIN question_banks ON question_banks.id = exam_schedules.bank_id").
+		Joins("JOIN exam_makeup_students ON exam_makeup_students.schedule_id = exam_schedules.id AND exam_makeup_students.student_id = ?", studentUserID).
+		Where("exam_schedules.is_active = ? AND start_time <= ? AND end_time >= ? AND (exam_schedules.event_id IS NULL OR exam_events.is_active = ?) AND exam_schedules.bank_id IS NOT NULL AND question_banks.is_locked = ? AND exam_schedules.is_makeup = ?",
+			true, now, now, true, true, true).
+		Order("start_time ASC").
+		Find(&makeupSchedules).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Gabungkan dan sort by start_time ASC
+	schedules := append(regularSchedules, makeupSchedules...)
+	sort.Slice(schedules, func(i, j int) bool {
+		return schedules[i].StartTime.Before(schedules[j].StartTime)
+	})
 
 	ClearExamTokens(schedules)
-	return schedules, err
+	return schedules, nil
 }
 
 // StartOrResumeExam handles token validation, session init, PRNG shuffling, and strips answer keys
@@ -118,6 +149,17 @@ func (s *ExamService) StartOrResumeExam(studentUserID uuid.UUID, scheduleID uuid
 
 	if strings.ToUpper(strings.TrimSpace(token)) != strings.ToUpper(strings.TrimSpace(schedule.ExamToken)) {
 		return nil, errors.New("token ujian salah atau tidak valid")
+	}
+
+	// Jika susulan: validasi whitelist siswa
+	if schedule.IsMakeup {
+		var count int64
+		s.repo.DB.Model(&domain.ExamMakeupStudent{}).
+			Where("schedule_id = ? AND student_id = ?", schedule.ID, studentUserID).
+			Count(&count)
+		if count == 0 {
+			return nil, errors.New("Anda tidak terdaftar sebagai peserta ujian susulan ini")
+		}
 	}
 
 	// Check existing session

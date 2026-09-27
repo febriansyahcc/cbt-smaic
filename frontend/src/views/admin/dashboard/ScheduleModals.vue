@@ -228,6 +228,53 @@
               <span class="text-xs font-semibold text-slate-700">Acak Opsi Pilihan</span>
             </label>
           </div>
+
+          <!-- Ujian Susulan Toggle -->
+          <div class="pt-1">
+            <label class="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100/60">
+              <div>
+                <span class="text-xs font-bold text-slate-700">Jadwal Susulan</span>
+                <p class="text-[11px] text-slate-500 mt-0.5">Hanya siswa terpilih yang dapat mengikuti ujian ini</p>
+              </div>
+              <input v-model="scheduleForm.is_makeup" type="checkbox" class="w-4 h-4 text-orange-500 rounded" />
+            </label>
+          </div>
+
+          <!-- Jika is_makeup: pilih siswa -->
+          <div v-if="scheduleForm.is_makeup" class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-slate-700">Peserta Susulan:</label>
+              <button
+                type="button"
+                @click="showMakeupStudentPicker = true"
+                class="px-3 h-7 inline-flex items-center gap-1 rounded-lg border text-xs font-semibold transition active:scale-95 cursor-pointer bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+              >
+                Pilih Siswa
+              </button>
+            </div>
+            <div v-if="scheduleForm.makeup_students.length === 0" class="text-[11px] text-slate-400 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+              Belum ada siswa dipilih. Klik "Pilih Siswa" untuk menambahkan peserta susulan.
+            </div>
+            <div v-else class="flex flex-wrap gap-1.5">
+              <span
+                v-for="s in scheduleForm.makeup_students"
+                :key="s.student_id"
+                class="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 bg-orange-50 text-orange-700 border border-orange-100 rounded-lg text-[11px] font-semibold"
+              >
+                <span class="truncate max-w-[160px]">{{ s.full_name }}</span>
+                <span class="text-orange-400 text-[10px]">{{ s.nis }}</span>
+                <button
+                  type="button"
+                  @click="toggleMakeupStudent({ id: s.student_id })"
+                  class="p-0.5 rounded-md text-orange-400 hover:text-orange-700 hover:bg-orange-100 transition cursor-pointer"
+                >
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </span>
+            </div>
+          </div>
         </div>
 
         <!-- Pinned Footer -->
@@ -310,6 +357,17 @@
             ]"
           >{{ essayTotalPending === 0 ? 'Selesai' : essayTotalPending }}</span>
         </button>
+        <button
+          v-if="selectedScheduleDetail.is_makeup"
+          type="button"
+          @click="scheduleDetailTab = 'makeup'; loadMakeupStudents(selectedScheduleDetail.id)"
+          :class="[
+            'px-3 py-2 text-xs font-semibold rounded-t-xl transition cursor-pointer border-b-2 -mb-px',
+            scheduleDetailTab === 'makeup'
+              ? 'text-orange-700 border-orange-500 bg-orange-50/60'
+              : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
+          ]"
+        >Peserta Susulan</button>
       </div>
 
       <!-- Tab: Informasi -->
@@ -324,6 +382,9 @@
             </span>
             <span class="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold rounded-md text-[11px]">
               {{ selectedScheduleDetail.subject?.name || selectedScheduleDetail.bank?.subject?.name || 'Mata Pelajaran' }}
+            </span>
+            <span v-if="selectedScheduleDetail.is_makeup" class="px-2 py-0.5 bg-orange-100 text-orange-700 border border-orange-200 font-bold rounded-md text-[11px]">
+              Susulan
             </span>
           </div>
         </div>
@@ -508,6 +569,29 @@
         </div>
       </div>
 
+      <!-- Tab: Peserta Susulan -->
+      <div v-if="scheduleDetailTab === 'makeup'" class="overflow-y-auto flex-1 p-4 space-y-3 text-xs">
+        <div v-if="loadingMakeupStudentsList" class="flex items-center justify-center py-10 text-slate-400">
+          Memuat daftar peserta...
+        </div>
+        <div v-else-if="makeupStudentsList.length === 0" class="flex flex-col items-center justify-center py-10 gap-2 text-slate-400">
+          <p class="text-xs font-medium text-slate-500 text-center">Belum ada siswa terdaftar sebagai peserta susulan.</p>
+        </div>
+        <div v-else class="space-y-1.5">
+          <div
+            v-for="s in makeupStudentsList"
+            :key="s.student_id || s.id"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-200 bg-white"
+          >
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-slate-800 truncate">{{ s.full_name || s.user?.full_name }}</div>
+              <div class="text-[10px] text-slate-500 font-mono">{{ s.nis }}</div>
+            </div>
+            <span class="text-[10px] text-slate-400 shrink-0">{{ s.class_name || s.class_room?.name }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Actions in Modal (Pinned Footer - Only Edit and Tutup) -->
       <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
         <button
@@ -527,6 +611,58 @@
           class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
         >
           Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PILIH SISWA SUSULAN -->
+  <div v-if="showMakeupStudentPicker" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+        <h3 class="text-sm font-bold text-slate-900">Pilih Peserta Ujian Susulan</h3>
+        <button @click="showMakeupStudentPicker = false" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div v-if="loadingMakeupStudents" class="flex items-center justify-center py-10 text-slate-400 text-xs">Memuat data siswa...</div>
+      <div v-else-if="allStudentsForClass.length === 0" class="flex items-center justify-center py-10 text-slate-400 text-xs">Tidak ada siswa di kelas ini.</div>
+      <div v-else class="overflow-y-auto flex-1 p-3 space-y-1.5">
+        <button
+          v-for="s in allStudentsForClass"
+          :key="s.id"
+          type="button"
+          @click="toggleMakeupStudent(s)"
+          :class="[
+            'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-xs font-medium text-left transition cursor-pointer',
+            isStudentSelected(s.id)
+              ? 'bg-orange-50 border-orange-200 text-orange-800'
+              : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+          ]"
+        >
+          <div class="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition"
+            :class="isStudentSelected(s.id) ? 'bg-orange-500 border-orange-500' : 'border-slate-300'">
+            <svg v-if="isStudentSelected(s.id)" class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold truncate">{{ s.user?.full_name || s.full_name }}</div>
+            <div class="text-[10px] text-slate-500 font-mono">{{ s.nis }}</div>
+          </div>
+          <span class="text-[10px] text-slate-400 shrink-0">{{ s.class_room?.name }}</span>
+        </button>
+      </div>
+      <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+        <span class="text-xs text-slate-600 font-medium">{{ scheduleForm.makeup_students.length }} siswa dipilih</span>
+        <button
+          type="button"
+          @click="showMakeupStudentPicker = false"
+          class="px-4 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer"
+        >
+          Selesai
         </button>
       </div>
     </div>
@@ -600,6 +736,7 @@ import ScheduleProctorModal from '@/components/admin/ScheduleProctorModal.vue'
 import { useDashboard } from './context'
 
 const {
+  allStudentsForClass,
   applyFormProctors,
   authStore,
   availableBanksForSelectedSchedule,
@@ -615,7 +752,12 @@ const {
   formatScheduleTimeRange,
   groupedAvailableClassSubjects,
   isEditSchedule,
+  isStudentSelected,
+  loadMakeupStudents,
+  loadingMakeupStudents,
+  loadingMakeupStudentsList,
   loadSchedules,
+  makeupStudentsList,
   onClassSubjectChange,
   openEditSchedule,
   removeFormProctor,
@@ -630,6 +772,7 @@ const {
   selectedScheduleForLink,
   showFormProctorPicker,
   showLinkBankModal,
+  showMakeupStudentPicker,
   showProctorAssignModal,
   showScheduleDetailModal,
   showScheduleModal,
@@ -637,6 +780,7 @@ const {
   submitScheduleForm,
   switchTab,
   switchToEssayTab,
+  toggleMakeupStudent,
   canGradeEssay,
 } = useDashboard()
 </script>

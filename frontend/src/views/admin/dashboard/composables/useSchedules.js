@@ -83,6 +83,7 @@ export function useSchedules(ctx) {
     essayQuestions.value = []
     essayDraft.value = {}
     essaySaving.value = {}
+    makeupStudentsList.value = []
   }
 
   const fetchEssayAnswers = async (scheduleId) => {
@@ -449,6 +450,17 @@ export function useSchedules(ctx) {
     }
   })
 
+  watch(
+    () => scheduleForm.value.is_makeup,
+    (val) => {
+      if (val) {
+        loadStudentsForClass(scheduleForm.value.class_id)
+      } else {
+        allStudentsForClass.value = []
+      }
+    }
+  )
+
   // Modals
   const showScheduleModal = ref(false)
 
@@ -471,6 +483,8 @@ export function useSchedules(ctx) {
     randomize_options: true,
     is_active: true,
     proctors: [],
+    is_makeup: false,
+    makeup_students: [],
   })
 
   // Penugasan pengawas: modal dari tabel jadwal dan pemilih di dalam form jadwal
@@ -479,6 +493,62 @@ export function useSchedules(ctx) {
   const showFormProctorPicker = ref(false)
   // Daftar id pengawas saat form dibuka, dipakai untuk mendeteksi perubahan saat menyimpan
   const scheduleFormInitialProctorIds = ref([])
+
+  // Ujian susulan: pemilih siswa di form dan daftar siswa di detail modal
+  const showMakeupStudentPicker = ref(false)
+  const allStudentsForClass = ref([])
+  const loadingMakeupStudents = ref(false)
+  const makeupStudentsList = ref([])
+  const loadingMakeupStudentsList = ref(false)
+
+  const selectedMakeupStudentIDs = computed(() =>
+    (scheduleForm.value.makeup_students || []).map(s => s.student_id)
+  )
+
+  const loadStudentsForClass = async (classId) => {
+    if (!classId) { allStudentsForClass.value = []; return }
+    loadingMakeupStudents.value = true
+    try {
+      const res = await api.get('/admin/students', { params: { class_id: classId } })
+      allStudentsForClass.value = res.data?.data || []
+    } catch (e) {
+      allStudentsForClass.value = []
+    } finally {
+      loadingMakeupStudents.value = false
+    }
+  }
+
+  const loadMakeupStudents = async (scheduleId) => {
+    if (!scheduleId) { makeupStudentsList.value = []; return }
+    loadingMakeupStudentsList.value = true
+    try {
+      const res = await api.get(`/admin/schedules/${scheduleId}/makeup-students`)
+      makeupStudentsList.value = res.data?.data || []
+    } catch (e) {
+      makeupStudentsList.value = []
+    } finally {
+      loadingMakeupStudentsList.value = false
+    }
+  }
+
+  const toggleMakeupStudent = (student) => {
+    if (!scheduleForm.value.makeup_students) scheduleForm.value.makeup_students = []
+    const idx = scheduleForm.value.makeup_students.findIndex(s => s.student_id === student.id)
+    if (idx >= 0) {
+      scheduleForm.value.makeup_students.splice(idx, 1)
+    } else {
+      scheduleForm.value.makeup_students.push({
+        student_id: student.id,
+        full_name: student.user?.full_name || student.full_name,
+        nis: student.nis,
+        class_name: student.class_room?.name || ''
+      })
+    }
+  }
+
+  const isStudentSelected = (studentId) => {
+    return (scheduleForm.value.makeup_students || []).some(s => s.student_id === studentId)
+  }
 
   const openProctorAssign = (sch) => {
     scheduleForProctors.value = sch
@@ -637,12 +707,15 @@ export function useSchedules(ctx) {
       randomize_options: true,
       is_active: true,
       proctors: [],
+      is_makeup: false,
+      makeup_students: [],
     }
     scheduleFormInitialProctorIds.value = []
+    allStudentsForClass.value = []
     showScheduleModal.value = true
   }
 
-  const openEditSchedule = (sch) => {
+  const openEditSchedule = async (sch) => {
     isEditSchedule.value = true
     const st = sch.start_time ? new Date(sch.start_time) : new Date()
     const et = sch.end_time ? new Date(sch.end_time) : new Date(st.getTime() + (sch.duration_minutes || 90) * 60000)
@@ -674,8 +747,25 @@ export function useSchedules(ctx) {
       randomize_options: sch.randomize_options ?? true,
       is_active: sch.is_active ?? true,
       proctors: (sch.proctors || []).map(p => ({ id: p.id, full_name: p.full_name })),
+      is_makeup: sch.is_makeup ?? false,
+      makeup_students: [],
     }
     scheduleFormInitialProctorIds.value = (sch.proctors || []).map(p => p.id)
+    allStudentsForClass.value = []
+
+    // Jika jadwal susulan, muat daftar siswa peserta dan semua siswa kelas secara paralel
+    if (sch.is_makeup) {
+      try {
+        const [makeupRes] = await Promise.all([
+          api.get(`/admin/schedules/${sch.id}/makeup-students`),
+          loadStudentsForClass(targetClassId),
+        ])
+        scheduleForm.value.makeup_students = makeupRes.data?.data || []
+      } catch (e) {
+        // silent – form tetap terbuka
+      }
+    }
+
     showScheduleModal.value = true
   }
 
@@ -731,6 +821,7 @@ export function useSchedules(ctx) {
         randomize_questions: scheduleForm.value.randomize_questions,
         randomize_options: scheduleForm.value.randomize_options,
         is_active: scheduleForm.value.is_active,
+        is_makeup: scheduleForm.value.is_makeup,
       }
 
       let savedScheduleId = scheduleForm.value.id
@@ -760,6 +851,17 @@ export function useSchedules(ctx) {
               proctorWarning = pe.response?.data?.message || 'Terjadi kesalahan saat menyimpan pengawas.'
             }
           }
+        }
+      }
+
+      // Sinkronisasi daftar siswa susulan (jika is_makeup aktif)
+      if (scheduleForm.value.is_makeup && savedScheduleId) {
+        try {
+          await api.post(`/admin/schedules/${savedScheduleId}/makeup-students`, {
+            student_ids: selectedMakeupStudentIDs.value
+          })
+        } catch (me) {
+          // Kegagalan sinkronisasi whitelist tidak membatalkan jadwal yang sudah tersimpan
         }
       }
 
@@ -949,5 +1051,15 @@ export function useSchedules(ctx) {
     scheduleGradeOf,
     scheduleSubjectOf,
     toggleScheduleStatus,
+    showMakeupStudentPicker,
+    allStudentsForClass,
+    loadingMakeupStudents,
+    makeupStudentsList,
+    loadingMakeupStudentsList,
+    selectedMakeupStudentIDs,
+    loadStudentsForClass,
+    loadMakeupStudents,
+    toggleMakeupStudent,
+    isStudentSelected,
   }
 }

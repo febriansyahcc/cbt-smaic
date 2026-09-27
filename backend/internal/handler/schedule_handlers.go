@@ -12,6 +12,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 func (h *Handlers) HandleGetAdminSchedules(c *fiber.Ctx) error {
@@ -132,6 +133,7 @@ type CreateScheduleRequest struct {
 	MaxViolations      int        `json:"max_violations"`
 	RandomizeQuestions *bool      `json:"randomize_questions"`
 	RandomizeOptions   *bool      `json:"randomize_options"`
+	IsMakeup           bool       `json:"is_makeup"`
 }
 
 type UpdateScheduleRequest struct {
@@ -149,6 +151,7 @@ type UpdateScheduleRequest struct {
 	RandomizeQuestions *bool      `json:"randomize_questions"`
 	RandomizeOptions   *bool      `json:"randomize_options"`
 	IsActive           *bool      `json:"is_active"`
+	IsMakeup           *bool      `json:"is_makeup"`
 }
 
 type LinkScheduleBankRequest struct {
@@ -237,6 +240,7 @@ func (h *Handlers) HandleCreateSchedule(c *fiber.Ctx) error {
 		RandomizeQuestions: randQ,
 		RandomizeOptions:   randO,
 		IsActive:           true,
+		IsMakeup:           req.IsMakeup,
 		CreatedAt:          now,
 	}
 
@@ -305,6 +309,9 @@ func (h *Handlers) HandleUpdateSchedule(c *fiber.Ctx) error {
 	}
 	if req.IsActive != nil {
 		sched.IsActive = *req.IsActive
+	}
+	if req.IsMakeup != nil {
+		sched.IsMakeup = *req.IsMakeup
 	}
 
 	if req.ExamDate != "" || req.StartTime != "" || req.EndTime != "" {
@@ -501,4 +508,95 @@ func (h *Handlers) HandleToggleSchedule(c *fiber.Ctx) error {
 	sched.IsActive = !sched.IsActive
 	h.repo.DB.Save(&sched)
 	return c.JSON(fiber.Map{"success": true, "is_active": sched.IsActive, "message": "Status jadwal berhasil diperbarui"})
+}
+
+// HandleGetMakeupStudents — GET /admin/schedules/:id/makeup-students
+func (h *Handlers) HandleGetMakeupStudents(c *fiber.Ctx) error {
+	schedID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "ID jadwal tidak valid"})
+	}
+	var sched domain.ExamSchedule
+	if err := h.repo.DB.First(&sched, "id = ?", schedID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "Jadwal tidak ditemukan"})
+	}
+
+	type MakeupStudentRow struct {
+		StudentID uuid.UUID `json:"student_id"`
+		FullName  string    `json:"full_name"`
+		NIS       string    `json:"nis"`
+		ClassName string    `json:"class_name"`
+	}
+	var rows []MakeupStudentRow
+	h.repo.DB.Raw(`
+		SELECT ems.student_id, u.full_name, sp.nis, cr.name as class_name
+		FROM exam_makeup_students ems
+		JOIN users u ON u.id = ems.student_id
+		JOIN student_profiles sp ON sp.user_id = ems.student_id
+		JOIN class_rooms cr ON cr.id = sp.class_room_id
+		WHERE ems.schedule_id = ?
+		ORDER BY cr.name, u.full_name
+	`, schedID).Scan(&rows)
+
+	return c.JSON(fiber.Map{"success": true, "data": rows})
+}
+
+// HandleSetMakeupStudents — POST /admin/schedules/:id/makeup-students
+// Body: { "student_ids": ["uuid1", "uuid2"] }  — REPLACE seluruh whitelist
+func (h *Handlers) HandleSetMakeupStudents(c *fiber.Ctx) error {
+	schedID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "ID jadwal tidak valid"})
+	}
+	var sched domain.ExamSchedule
+	if err := h.repo.DB.First(&sched, "id = ?", schedID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "Jadwal tidak ditemukan"})
+	}
+	if !sched.IsMakeup {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Jadwal ini bukan jadwal susulan"})
+	}
+
+	var body struct {
+		StudentIDs []uuid.UUID `json:"student_ids"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Format data tidak valid"})
+	}
+
+	// Replace whitelist dalam satu transaksi
+	if err := h.repo.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("schedule_id = ?", schedID).Delete(&domain.ExamMakeupStudent{}).Error; err != nil {
+			return err
+		}
+		for _, sid := range body.StudentIDs {
+			row := domain.ExamMakeupStudent{ScheduleID: schedID, StudentID: sid, CreatedAt: time.Now()}
+			if err := tx.Create(&row).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal menyimpan peserta susulan"})
+	}
+
+	return c.JSON(fiber.Map{"success": true, "message": fmt.Sprintf("%d peserta susulan berhasil disimpan", len(body.StudentIDs))})
+}
+
+// HandleRemoveMakeupStudent — DELETE /admin/schedules/:id/makeup-students/:studentId
+func (h *Handlers) HandleRemoveMakeupStudent(c *fiber.Ctx) error {
+	schedID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "ID jadwal tidak valid"})
+	}
+	studentID, err := uuid.Parse(c.Params("studentId"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "ID siswa tidak valid"})
+	}
+
+	result := h.repo.DB.Where("schedule_id = ? AND student_id = ?", schedID, studentID).Delete(&domain.ExamMakeupStudent{})
+	if result.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Gagal menghapus peserta"})
+	}
+
+	return c.JSON(fiber.Map{"success": true, "message": "Peserta berhasil dihapus dari daftar susulan"})
 }

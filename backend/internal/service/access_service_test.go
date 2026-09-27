@@ -43,7 +43,7 @@ func newAccessFixture(t *testing.T) *accessFixture {
 		&domain.User{}, &domain.ClassRoom{}, &domain.StudentProfile{}, &domain.Subject{},
 		&domain.ClassSubject{}, &domain.QuestionBank{}, &domain.Question{}, &domain.ExamEvent{},
 		&domain.ExamSchedule{}, &domain.ExamSession{}, &domain.StudentAnswer{},
-		&domain.ViolationLog{}, &domain.ScheduleProctor{},
+		&domain.ViolationLog{}, &domain.ScheduleProctor{}, &domain.ExamMakeupStudent{},
 	); err != nil {
 		t.Fatalf("auto-migrate gagal: %v", err)
 	}
