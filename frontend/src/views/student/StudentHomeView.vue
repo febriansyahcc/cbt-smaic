@@ -93,6 +93,9 @@
                   <span v-if="item.event" class="px-2.5 py-0.5 bg-purple-50 text-purple-700 text-[11px] font-bold rounded-full">
                     {{ item.event.code }} - {{ item.event.title }}
                   </span>
+                  <span v-if="item.is_makeup" class="px-2.5 py-0.5 bg-orange-100 text-orange-700 text-[11px] font-bold rounded-full">
+                    Ujian Susulan
+                  </span>
                 </div>
                 <h4 class="text-base font-bold text-slate-900">{{ item.title }}</h4>
               </div>

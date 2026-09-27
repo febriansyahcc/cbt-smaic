@@ -161,8 +161,8 @@ type LinkScheduleBankRequest struct {
 
 func (h *Handlers) HandleCreateSchedule(c *fiber.Ctx) error {
 	var req CreateScheduleRequest
-	if err := c.BodyParser(&req); err != nil || req.Title == "" || req.ClassID == uuid.Nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Judul dan kelas wajib diisi"})
+	if err := c.BodyParser(&req); err != nil || req.Title == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Judul jadwal wajib diisi"})
 	}
 
 	var targetSubjectID *uuid.UUID
@@ -179,10 +179,6 @@ func (h *Handlers) HandleCreateSchedule(c *fiber.Ctx) error {
 				targetSubjectID = &bank.SubjectID
 			}
 		}
-	}
-
-	if targetSubjectID == nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Mata pelajaran wajib ditentukan untuk jadwal ujian"})
 	}
 
 	duration := req.DurationMinutes
@@ -211,22 +207,34 @@ func (h *Handlers) HandleCreateSchedule(c *fiber.Ctx) error {
 		}
 	}
 
-	// Jika parent_id diisi, jadwal ini adalah susulan dari jadwal induk
+	// Jika parent_id diisi, jadwal ini adalah susulan: inherit kelas/mapel/event dari induk
 	if req.ParentScheduleID != nil && *req.ParentScheduleID != uuid.Nil {
-		req.IsMakeup = true
-		// Ambil kelas & mapel dari jadwal induk jika tidak diisi
 		var parent domain.ExamSchedule
-		if err := h.repo.DB.First(&parent, "id = ?", *req.ParentScheduleID).Error; err == nil {
-			if req.ClassID == uuid.Nil {
-				req.ClassID = parent.ClassRoomID
-			}
-			if targetSubjectID == nil {
-				targetSubjectID = parent.SubjectID
-			}
-			if targetEventID == nil {
-				targetEventID = parent.EventID
-			}
+		if err := h.repo.DB.First(&parent, "id = ?", *req.ParentScheduleID).Error; err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Jadwal induk tidak ditemukan"})
 		}
+		if parent.IsMakeup {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Jadwal induk tidak boleh merupakan jadwal susulan"})
+		}
+		req.IsMakeup = true
+		if req.ClassID == uuid.Nil {
+			req.ClassID = parent.ClassRoomID
+		}
+		if targetSubjectID == nil {
+			targetSubjectID = parent.SubjectID
+		}
+		if targetEventID == nil {
+			targetEventID = parent.EventID
+		}
+	}
+
+	// Validasi kelas wajib ada (setelah inherit dari parent)
+	if req.ClassID == uuid.Nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Kelas wajib ditentukan untuk jadwal ujian"})
+	}
+
+	if targetSubjectID == nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Mata pelajaran wajib ditentukan untuk jadwal ujian"})
 	}
 
 	st, et := parseScheduleTimes(req.ExamDate, req.StartTime, req.EndTime, duration)
