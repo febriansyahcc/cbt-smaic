@@ -130,13 +130,23 @@ func AuthRequired(db *repository.Database) fiber.Handler {
 			})
 		}
 
-		// For students, check single device session token
-		if user.Role == domain.RoleSiswa && user.SessionToken != "" && user.SessionToken != claims.SessionID {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"success": false,
-				"code":    "CONCURRENT_LOGIN",
-				"message": "Sesi berakhir. Akun Anda telah digunakan untuk login di perangkat lain.",
-			})
+		// Siswa: token hanya berlaku untuk sesi login terakhir. Sesi kosong berarti sudah
+		// diakhiri (logout, reset perangkat, reset password), bukan bebas pemeriksaan.
+		if user.Role == domain.RoleSiswa {
+			if user.SessionToken == "" {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"success": false,
+					"code":    "SESSION_ENDED",
+					"message": "Sesi Anda telah diakhiri. Silakan login kembali.",
+				})
+			}
+			if user.SessionToken != claims.SessionID {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"success": false,
+					"code":    "CONCURRENT_LOGIN",
+					"message": "Sesi berakhir. Akun Anda telah digunakan untuk login di perangkat lain.",
+				})
+			}
 		}
 
 		// Set locals

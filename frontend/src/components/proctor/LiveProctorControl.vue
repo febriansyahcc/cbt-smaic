@@ -1009,8 +1009,8 @@ const handleUnlock = async (st) => {
 const handleResetDevice = async (st) => {
   if (!canControl.value) return
   const confirmed = await showConfirmModal({
-    title: 'Reset Sesi Perangkat',
-    message: `Reset sesi login perangkat untuk ${st.full_name}? Siswa akan dapat login kembali di smartphone/komputer baru.`,
+    title: 'Reset Login Perangkat',
+    message: `Keluarkan ${st.full_name} dari perangkat yang sedang dipakai? Siswa perlu login ulang, lalu dapat melanjutkan ujian di perangkat mana pun. Jawaban yang sudah terkirim tetap tersimpan.`,
     type: 'warning',
     confirmText: 'Reset Sesi',
     cancelText: 'Batal'
