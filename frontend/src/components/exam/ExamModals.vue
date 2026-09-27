@@ -219,17 +219,13 @@ const checkUnlockStatus = async () => {
   isChecking.value = true
   try {
     await examStore.startExam(scheduleId, token)
-    if (!examStore.isBlocked) {
-      showToast('Kunci telah dibuka oleh pengawas. Anda dapat melanjutkan ujian!', 'success')
-    } else {
-      await showAlertModal({
-        title: 'Status Masih Terkunci',
-        message: 'Sesi Anda masih berstatus terkunci. Mohon tunggu konfirmasi pengawas.',
-        type: 'warning'
-      })
-    }
+    showToast('Kunci telah dibuka oleh pengawas. Anda dapat melanjutkan ujian!', 'success')
   } catch (e) {
-    //
+    await showAlertModal({
+      title: 'Status Masih Terkunci',
+      message: e.response?.data?.message || 'Sesi Anda masih berstatus terkunci. Mohon tunggu konfirmasi pengawas.',
+      type: 'warning'
+    })
   } finally {
     isChecking.value = false
   }

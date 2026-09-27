@@ -74,7 +74,10 @@ export const useExamStore = defineStore('exam', {
       this.remainingSeconds = payload.remaining_seconds
       this.maxViolations = payload.max_violations
       this.violationCount = payload.current_violations || 0
-      this.isBlocked = this.violationCount >= this.maxViolations
+      // Server menolak sesi terblokir, jadi payload yang sampai berarti sesi aktif. Jumlah
+      // pelanggaran tetap disimpan setelah pengawas membuka blokir, sehingga tidak bisa
+      // dipakai untuk menentukan status terkunci.
+      this.isBlocked = false
       this.questions = payload.questions || []
       this.currentIndex = 0
 
