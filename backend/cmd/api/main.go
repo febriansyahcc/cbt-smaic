@@ -57,7 +57,13 @@ func main() {
 
 	handlers := handler.NewHandlers(db)
 
-	// Static Media Serving
+	// Static Media Serving. File unggahan hanya boleh tampil sebagai gambar: CSP sandbox
+	// mematikan script bila file dibuka langsung (termasuk SVG lama yang sudah terunggah).
+	app.Use("/uploads", func(c *fiber.Ctx) error {
+		c.Set("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox")
+		c.Set("X-Content-Type-Options", "nosniff")
+		return c.Next()
+	})
 	app.Static("/uploads", "./uploads")
 
 	// Health Check — performs a real DB ping so external monitors (e.g. UptimeRobot)

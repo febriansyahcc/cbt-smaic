@@ -3876,7 +3876,7 @@
 
               <!-- Question text -->
               <div class="px-4 py-3 bg-white border-b border-slate-100">
-                <div class="text-slate-700 font-medium leading-relaxed" v-html="q.content_html"></div>
+                <RichContentRenderer :content="q.content_html" custom-class="text-slate-700 font-medium leading-relaxed" />
               </div>
 
               <!-- Answers -->

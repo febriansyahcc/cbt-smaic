@@ -3358,13 +3358,13 @@ func (h *Handlers) HandleUploadImage(c *fiber.Ctx) error {
 		".png":  true,
 		".webp": true,
 		".gif":  true,
-		".svg":  true,
+		// .svg sengaja ditolak: SVG bisa memuat script yang berjalan di origin aplikasi.
 	}
 
 	if !allowedExtensions[ext] {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Format file tidak didukung. Gunakan format JPG, PNG, WEBP, GIF, atau SVG",
+			"message": "Format file tidak didukung. Gunakan format JPG, PNG, WEBP, atau GIF",
 		})
 	}
 
