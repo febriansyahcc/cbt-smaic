@@ -1,4 +1,5 @@
 import katex from 'katex'
+import DOMPurify from 'dompurify'
 
 // Pemformatan konten soal (rumus KaTeX, teks Arab dan Korea). Dipakai bersama oleh
 // RichContentRenderer (tampilan aplikasi) dan dokumen cetak naskah soal.
@@ -79,7 +80,19 @@ export const formatMultilingualText = (rawText) => {
   return textWithPlaceholders
 }
 
+/**
+ * Buang script, event handler (onerror, onclick, ...) dan URL javascript: dari HTML soal.
+ * Konten soal ditulis staf dan dirender dengan v-html di perangkat admin maupun siswa.
+ */
+export const sanitizeHtml = (html) => {
+  if (!html) return ''
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true, mathMl: true, svg: true },
+    FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select'],
+  })
+}
+
 export const formatRichContent = (raw) => {
   if (!raw || !raw.trim()) return ''
-  return formatMultilingualText(renderMath(raw))
+  return sanitizeHtml(formatMultilingualText(renderMath(raw)))
 }

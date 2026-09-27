@@ -37,6 +37,10 @@ func main() {
 		AppName:      "CBT High School Engine v1.0",
 		BodyLimit:    20 * 1024 * 1024, // 20 MB for excel/media uploads
 		ServerHeader: "CBT-Go-Engine",
+		// Di belakang nginx, c.IP() memakai X-Real-IP, tetapi hanya dari proxy tepercaya.
+		ProxyHeader:             "X-Real-IP",
+		EnableTrustedProxyCheck: true,
+		TrustedProxies:          middleware.TrustedProxies(),
 	})
 
 	// Global Middlewares
@@ -57,7 +61,13 @@ func main() {
 
 	handlers := handler.NewHandlers(db)
 
-	// Static Media Serving
+	// Static Media Serving. File unggahan hanya boleh tampil sebagai gambar: CSP sandbox
+	// mematikan script bila file dibuka langsung (termasuk SVG lama yang sudah terunggah).
+	app.Use("/uploads", func(c *fiber.Ctx) error {
+		c.Set("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox")
+		c.Set("X-Content-Type-Options", "nosniff")
+		return c.Next()
+	})
 	app.Static("/uploads", "./uploads")
 
 	// Health Check — performs a real DB ping so external monitors (e.g. UptimeRobot)
@@ -90,7 +100,7 @@ func main() {
 
 	// Public Auth Routes
 	auth := api.Group("/auth")
-	auth.Post("/login", handlers.HandleLogin)
+	auth.Post("/login", middleware.LoginRateLimiter(), handlers.HandleLogin)
 	auth.Get("/me", middleware.AuthRequired(db), handlers.HandleGetMe)
 	auth.Post("/logout", middleware.AuthRequired(db), handlers.HandleLogout)
 

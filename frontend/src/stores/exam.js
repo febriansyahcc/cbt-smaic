@@ -8,6 +8,8 @@ import router from '../router/index.js'
 let _onlineHandler = null
 let _offlineHandler = null
 
+const HEARTBEAT_MS = 60 * 1000
+
 export const useExamStore = defineStore('exam', {
   state: () => ({
     sessionId: null,
@@ -15,6 +17,7 @@ export const useExamStore = defineStore('exam', {
     subjectName: '',
     durationMinutes: 90,
     serverDeadline: null,
+    clockOffsetMs: 0, // jam server - jam perangkat
     remainingSeconds: 0,
     maxViolations: 3,
     violationCount: 0,
@@ -29,6 +32,9 @@ export const useExamStore = defineStore('exam', {
     isSubmitModalOpen: false,
     timerHandle: null,
     syncTimerHandle: null,
+    heartbeatHandle: null,
+    syncError: '', // pesan penolakan sync dari server; kosong bila sync terakhir berhasil
+    isAutoSubmitting: false,
     scoreResult: null,
     submittedAt: null,
   }),
@@ -70,8 +76,9 @@ export const useExamStore = defineStore('exam', {
       this.scheduleTitle = payload.schedule_title
       this.subjectName = payload.subject_name
       this.durationMinutes = payload.duration_minutes
-      this.serverDeadline = new Date(payload.server_deadline)
-      this.remainingSeconds = payload.remaining_seconds
+      this.applyServerClock(payload.server_time, payload.server_deadline)
+      this.syncError = ''
+      this.isAutoSubmitting = false
       this.maxViolations = payload.max_violations
       this.violationCount = payload.current_violations || 0
       this.isBlocked = this.violationCount >= this.maxViolations
@@ -81,29 +88,71 @@ export const useExamStore = defineStore('exam', {
       // Cache payload for offline recoverability
       localExamStorage.cacheExamPayload(this.sessionId, payload)
 
-      // Initialize answers from server saved + local storage
-      const serverSaved = payload.saved_answers || {}
-      const localSaved = localExamStorage.getAllAnswers(this.sessionId)
+      // Jawaban server memakai snake_case; state lokal memakai camelCase.
+      const serverSaved = {}
+      for (const [qId, a] of Object.entries(payload.saved_answers || {})) {
+        serverSaved[qId] = {
+          selectedOption: a.selected_option || '',
+          answerText: a.answer_text || '',
+          isDoubtful: !!a.is_doubtful,
+        }
+      }
 
-      // Merge: local saved takes precedence if newer
-      this.localAnswers = { ...serverSaved, ...localSaved }
+      // Jawaban lokal hanya menang bila belum tersinkron (masih di antrean). Selebihnya server
+      // adalah sumber kebenaran, mis. setelah siswa pindah perangkat atau cache dibersihkan.
+      const localSaved = localExamStorage.getAllAnswers(this.sessionId)
+      const pendingIds = new Set(localExamStorage.getPendingQueue(this.sessionId).map((p) => p.question_id))
+      const merged = { ...serverSaved }
+      for (const [qId, a] of Object.entries(localSaved)) {
+        if (pendingIds.has(qId) || !merged[qId]) merged[qId] = a
+      }
+      this.localAnswers = merged
 
       this.updatePendingCount()
       this.startCountdown()
+      this.startHeartbeat()
 
       return payload
     },
 
+    // Simpan deadline server beserta selisih jam perangkat, lalu hitung ulang sisa waktu.
+    applyServerClock(serverTime, serverDeadline) {
+      if (!serverDeadline) return
+      if (serverTime) this.clockOffsetMs = new Date(serverTime).getTime() - Date.now()
+      this.serverDeadline = new Date(serverDeadline)
+      this.recomputeRemaining()
+    },
+
+    recomputeRemaining() {
+      if (!this.serverDeadline) return
+      const serverNow = Date.now() + this.clockOffsetMs
+      this.remainingSeconds = Math.max(0, Math.ceil((this.serverDeadline.getTime() - serverNow) / 1000))
+    },
+
+    // Sisa waktu selalu dihitung dari deadline server, bukan dikurangi per detik: interval yang
+    // melambat saat layar HP mati atau tab di latar belakang tidak membuat timer tertinggal.
     startCountdown() {
       if (this.timerHandle) clearInterval(this.timerHandle)
+      this.recomputeRemaining()
       this.timerHandle = setInterval(() => {
-        if (this.remainingSeconds > 0) {
-          this.remainingSeconds--
-        } else {
+        this.recomputeRemaining()
+        if (this.remainingSeconds <= 0) {
           clearInterval(this.timerHandle)
+          this.timerHandle = null
           this.autoSubmitOnTimeout()
         }
       }, 1000)
+    },
+
+    // Heartbeat berkala mengambil deadline terbaru (tambahan waktu pengawas) dan mengirim antrean.
+    startHeartbeat() {
+      this.stopHeartbeat()
+      this.heartbeatHandle = setInterval(() => this.flushSyncQueue({ force: true }), HEARTBEAT_MS)
+    },
+
+    stopHeartbeat() {
+      if (this.heartbeatHandle) clearInterval(this.heartbeatHandle)
+      this.heartbeatHandle = null
     },
 
     listenNetwork() {
@@ -115,6 +164,7 @@ export const useExamStore = defineStore('exam', {
     },
 
     cleanupNetwork() {
+      this.stopHeartbeat()
       if (_onlineHandler) window.removeEventListener('online', _onlineHandler)
       if (_offlineHandler) window.removeEventListener('offline', _offlineHandler)
       _onlineHandler = null
@@ -199,23 +249,31 @@ export const useExamStore = defineStore('exam', {
       }, 300)
     },
 
-    async flushSyncQueue() {
+    // force: kirim walau antrean kosong (heartbeat / cek deadline sebelum auto-submit).
+    async flushSyncQueue({ force = false } = {}) {
       if (!this.sessionId || !navigator.onLine) return
       const pendingItems = localExamStorage.getPendingQueue(this.sessionId)
       if (pendingItems.length === 0) {
         this.pendingCount = 0
-        return
+        if (!force) return
       }
 
       this.isSyncing = true
       try {
-        await api.post('/student/exams/sync', {
+        const res = await api.post('/student/exams/sync', {
           session_id: this.sessionId,
           answers: pendingItems,
         })
         const syncedIds = pendingItems.map((p) => p.question_id)
         localExamStorage.clearPendingItems(this.sessionId, syncedIds)
+        this.syncError = ''
+        this.applyServerClock(res.data.server_time, res.data.server_deadline)
       } catch (err) {
+        // Tanpa respons = jaringan putus; antrean tetap disimpan dan dicoba lagi. Dengan respons =
+        // server menolak (waktu habis, sesi terkunci/dikumpulkan) dan siswa perlu tahu.
+        if (err.response) {
+          this.syncError = err.response.data?.message || 'Jawaban ditolak server'
+        }
         console.warn('Sync failed, will retry later:', err)
       } finally {
         this.isSyncing = false
@@ -251,6 +309,7 @@ export const useExamStore = defineStore('exam', {
 
     async submitExam() {
       if (this.timerHandle) clearInterval(this.timerHandle)
+      this.stopHeartbeat()
       // Flush pending queue first
       await this.flushSyncQueue()
 
@@ -267,11 +326,25 @@ export const useExamStore = defineStore('exam', {
       return this.scoreResult
     },
 
-    autoSubmitOnTimeout() {
-      this.submitExam()
-        .finally(() => {
-          router.push('/exam-finished')
-        })
+    // Sebelum mengumpulkan, tanya deadline terbaru ke server: bila pengawas baru menambah waktu,
+    // timer dilanjutkan alih-alih mengumpulkan terlalu cepat.
+    async autoSubmitOnTimeout() {
+      // Sesi terkunci hanya bisa dikumpulkan pengawas; tetap di layar kunci.
+      if (this.isAutoSubmitting || this.isBlocked) return
+      this.isAutoSubmitting = true
+      await this.flushSyncQueue({ force: true })
+      if (this.remainingSeconds > 0) {
+        this.isAutoSubmitting = false
+        this.startCountdown()
+        return
+      }
+      try {
+        await this.submitExam()
+      } catch (e) {
+        console.warn('Auto-submit gagal:', e)
+      } finally {
+        router.push('/exam-finished')
+      }
     }
   }
 })

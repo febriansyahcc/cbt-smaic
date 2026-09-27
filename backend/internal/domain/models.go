@@ -230,6 +230,7 @@ type ExamSession struct {
 	SubmittedAt       *time.Time    `json:"submitted_at,omitempty"`
 	Status            SessionStatus `gorm:"size:20;default:'IN_PROGRESS'" json:"status"`
 	ViolationCount    int           `gorm:"default:0" json:"violation_count"`
+	ViolationBase     int           `gorm:"default:0" json:"violation_base"` // Pelanggaran yang sudah diputihkan pengawas saat membuka kunci
 	ClientIP          string        `gorm:"size:100" json:"client_ip"`
 	UserAgent         string        `gorm:"size:255" json:"user_agent"`
 	DeviceFingerprint string        `gorm:"size:255" json:"device_fingerprint"`
@@ -237,6 +238,15 @@ type ExamSession struct {
 	MaxScore          float64       `gorm:"default:100.0" json:"max_score"`
 	CreatedAt         time.Time     `json:"created_at"`
 	UpdatedAt         time.Time     `json:"updated_at"`
+}
+
+// ActiveViolations adalah jumlah pelanggaran sejak kunci terakhir dibuka pengawas.
+// ViolationCount tetap menyimpan total untuk audit; kuota MaxViolations berlaku per putaran.
+func (s *ExamSession) ActiveViolations() int {
+	if n := s.ViolationCount - s.ViolationBase; n > 0 {
+		return n
+	}
+	return 0
 }
 
 type StudentAnswer struct {
