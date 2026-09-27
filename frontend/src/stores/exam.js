@@ -81,12 +81,25 @@ export const useExamStore = defineStore('exam', {
       // Cache payload for offline recoverability
       localExamStorage.cacheExamPayload(this.sessionId, payload)
 
-      // Initialize answers from server saved + local storage
-      const serverSaved = payload.saved_answers || {}
-      const localSaved = localExamStorage.getAllAnswers(this.sessionId)
+      // Jawaban server memakai snake_case; state lokal memakai camelCase.
+      const serverSaved = {}
+      for (const [qId, a] of Object.entries(payload.saved_answers || {})) {
+        serverSaved[qId] = {
+          selectedOption: a.selected_option || '',
+          answerText: a.answer_text || '',
+          isDoubtful: !!a.is_doubtful,
+        }
+      }
 
-      // Merge: local saved takes precedence if newer
-      this.localAnswers = { ...serverSaved, ...localSaved }
+      // Jawaban lokal hanya menang bila belum tersinkron (masih di antrean). Selebihnya server
+      // adalah sumber kebenaran, mis. setelah siswa pindah perangkat atau cache dibersihkan.
+      const localSaved = localExamStorage.getAllAnswers(this.sessionId)
+      const pendingIds = new Set(localExamStorage.getPendingQueue(this.sessionId).map((p) => p.question_id))
+      const merged = { ...serverSaved }
+      for (const [qId, a] of Object.entries(localSaved)) {
+        if (pendingIds.has(qId) || !merged[qId]) merged[qId] = a
+      }
+      this.localAnswers = merged
 
       this.updatePendingCount()
       this.startCountdown()
