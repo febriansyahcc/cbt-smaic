@@ -193,9 +193,43 @@ func (s *ProctorService) UnlockStudentSession(sessionID uuid.UUID) error {
 		return errors.New("sesi tidak ditemukan")
 	}
 
-	session.Status = domain.StatusInProgress
-	// Keep violation count for audit, but reset lockout
-	return s.repo.DB.Save(&session).Error
+	if session.Status == domain.StatusSubmitted {
+		return errors.New("sesi ini sudah dikumpulkan dan tidak dapat dibuka kembali")
+	}
+	if session.Status != domain.StatusBlocked {
+		return nil // tidak sedang terkunci
+	}
+
+	// Syarat status di WHERE mencegah menimpa sesi yang baru saja dikumpulkan.
+	res := s.repo.DB.Model(&domain.ExamSession{}).
+		Where("id = ? AND status = ?", sessionID, domain.StatusBlocked).
+		Updates(reopenSessionFields(session))
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errors.New("status sesi telah berubah, muat ulang data")
+	}
+
+	_ = s.repo.DB.Create(&domain.ViolationLog{
+		ID:         uuid.New(),
+		SessionID:  sessionID,
+		EventType:  "UNLOCKED",
+		Details:    fmt.Sprintf("Kunci dibuka pengawas (total pelanggaran %d)", session.ViolationCount),
+		OccurredAt: time.Now(),
+	}).Error
+	return nil
+}
+
+// reopenSessionFields membuka sesi terkunci. Pelanggaran yang sudah terjadi diputihkan lewat
+// ViolationBase sehingga siswa kembali mendapat kuota penuh, sementara ViolationCount tetap
+// menyimpan total untuk audit pengawas.
+func reopenSessionFields(session domain.ExamSession) map[string]interface{} {
+	return map[string]interface{}{
+		"status":         domain.StatusInProgress,
+		"violation_base": session.ViolationCount,
+		"updated_at":     time.Now(),
+	}
 }
 
 // ResetStudentDeviceSession resets session token to allow login on a replacement smartphone or PC
@@ -229,6 +263,7 @@ func (s *ProctorService) ExtendTimeSession(sessionID uuid.UUID, extraMinutes int
 
 	if session.Status == domain.StatusBlocked {
 		session.Status = domain.StatusInProgress
+		session.ViolationBase = session.ViolationCount
 	}
 
 	if err := s.repo.DB.Save(&session).Error; err != nil {
@@ -273,6 +308,7 @@ func (s *ProctorService) ExtendTimeAllSchedule(scheduleID uuid.UUID, extraMinute
 		}
 		if sess.Status == domain.StatusBlocked {
 			sess.Status = domain.StatusInProgress
+			sess.ViolationBase = sess.ViolationCount
 		}
 		if err := s.repo.DB.Save(&sess).Error; err == nil {
 			count++

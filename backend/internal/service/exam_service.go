@@ -244,7 +244,7 @@ func (s *ExamService) StartOrResumeExam(studentUserID uuid.UUID, scheduleID uuid
 		ServerDeadline:    session.ServerDeadline,
 		RemainingSeconds:  remaining,
 		MaxViolations:     schedule.MaxViolations,
-		CurrentViolations: session.ViolationCount,
+		CurrentViolations: session.ActiveViolations(),
 		Questions:         clientQuestions,
 		SavedAnswers:      savedMap,
 	}, nil
@@ -307,7 +307,7 @@ func (s *ExamService) RecordViolation(sessionID uuid.UUID, studentUserID uuid.UU
 	}
 
 	if session.Status == domain.StatusSubmitted {
-		return session.ViolationCount, false, nil
+		return session.ActiveViolations(), false, nil
 	}
 
 	// Insert log
@@ -323,13 +323,13 @@ func (s *ExamService) RecordViolation(sessionID uuid.UUID, studentUserID uuid.UU
 	session.ViolationCount++
 	isBlocked := false
 
-	if session.ViolationCount >= session.Schedule.MaxViolations {
+	if session.ActiveViolations() >= session.Schedule.MaxViolations {
 		session.Status = domain.StatusBlocked
 		isBlocked = true
 	}
 	s.repo.DB.Save(&session)
 
-	return session.ViolationCount, isBlocked, nil
+	return session.ActiveViolations(), isBlocked, nil
 }
 
 // SubmitExam finalizes the exam and auto-calculates total score for multiple choice & short answers
