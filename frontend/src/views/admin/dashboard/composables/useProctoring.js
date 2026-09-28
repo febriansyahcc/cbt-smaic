@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import api from '../../../../services/api'
+import { useAuthStore } from '../../../../stores/auth'
 
 // Pengawasan live: jadwal pengawasan, status peserta, serta ekspor nilai (Excel) dan berita acara (PDF).
 export function useProctoring(ctx) {
@@ -7,6 +8,7 @@ export function useProctoring(ctx) {
     extractExportErrorMessage,
     showAlertModal,
   } = ctx
+  const authStore = useAuthStore()
 
   // Live Proctoring States
   const proctorSchedules = ref([])
@@ -92,8 +94,10 @@ export function useProctoring(ctx) {
     if (!activeProctorScheduleId.value || isExportingPDF.value) return
     isExportingPDF.value = true
     try {
+      const proctorName = authStore.user?.full_name || ''
       const res = await api.get(`/proctor/reports/pdf/${activeProctorScheduleId.value}`, {
-        responseType: 'blob'
+        responseType: 'blob',
+        params: { proctor: proctorName },
       })
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
       const link = document.createElement('a')
