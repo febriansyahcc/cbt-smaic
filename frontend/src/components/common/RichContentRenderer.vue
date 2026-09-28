@@ -103,8 +103,8 @@ const closeLightbox = () => {
 
 const handleContainerClick = (e) => {
   if (e.target && e.target.tagName === 'IMG') {
-    e.preventDefault()
-    e.stopPropagation()
+    // Buka lightbox, tapi JANGAN stopPropagation: event harus tetap naik ke parent
+    // agar option card (@click="selectOption") ikut terpanggil saat gambar ada di teks pilihan.
     lightboxImage.value = e.target.src
     lightboxAlt.value = e.target.alt || 'Gambar Soal'
   }
