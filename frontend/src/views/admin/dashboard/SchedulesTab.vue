@@ -769,7 +769,7 @@ const {
 
 const downloadMergedExcel = async (scheduleId) => {
   try {
-    const res = await api.get(`/api/v1/proctor/reports/excel-merged/${scheduleId}`, { responseType: 'blob' })
+    const res = await api.get(`/proctor/reports/excel-merged/${scheduleId}`, { responseType: 'blob' })
     const url = window.URL.createObjectURL(new Blob([res.data]))
     const a = document.createElement('a')
     a.href = url
