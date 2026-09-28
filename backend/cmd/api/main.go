@@ -147,6 +147,7 @@ func main() {
 	proctor.Get("/schedules", proctorView, handlers.HandleGetProctorSchedules)
 	proctor.Get("/live/:schedule_id", proctorView, handlers.HandleGetLiveProctorData)
 	proctor.Get("/sessions/:id/violations", proctorView, handlers.HandleGetSessionViolations)
+	proctor.Get("/sessions/:id/answers", proctorView, handlers.HandleGetSessionAnswers)
 	proctor.Post("/unlock", proctorControl, handlers.HandleUnlockStudentSession)
 	proctor.Post("/sessions/:id/unlock", proctorControl, handlers.HandleUnlockStudentSession)
 	proctor.Post("/reset-device", proctorControl, handlers.HandleResetStudentSession)

@@ -372,6 +372,20 @@
                     <span>Selesaikan</span>
                   </button>
 
+                  <!-- Lihat Jawaban -->
+                  <button
+                    v-if="st.status === 'SUBMITTED' && st.session_id"
+                    type="button"
+                    @click="openAnswerReview(st)"
+                    class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                    title="Lihat Detail Jawaban Siswa"
+                  >
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+
                   <!-- Reset Sesi Ujian -->
                   <button
                     v-if="st.status === 'SUBMITTED' && st.session_id"
@@ -580,6 +594,13 @@
       </div>
     </div>
 
+    <!-- MODAL: LIHAT JAWABAN SISWA -->
+    <StudentAnswerReviewModal
+      v-model="showAnswerReview"
+      :session-data="reviewSessionData"
+      :loading="reviewLoading"
+    />
+
     <!-- MODAL: LOG PELANGGARAN & AKTIVITAS SISWA -->
     <div
       v-if="showViolationModal"
@@ -659,6 +680,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import api from '@/services/api'
 import { useDialog } from '@/composables/useDialog'
 import { useAuthStore } from '@/stores/auth'
+import StudentAnswerReviewModal from './StudentAnswerReviewModal.vue'
 
 const authStore = useAuthStore()
 
@@ -729,6 +751,11 @@ const showViolationModal = ref(false)
 const selectedStudentForViolation = ref(null)
 const violationLogsList = ref([])
 const isLoadingViolations = ref(false)
+
+// Answer Review
+const showAnswerReview = ref(false)
+const reviewLoading = ref(false)
+const reviewSessionData = ref(null)
 
 // Counts
 const allStudentsList = computed(() => {
@@ -1160,6 +1187,22 @@ const openViolationLogModal = async (st) => {
     console.error('Failed to load violation logs', err)
   } finally {
     isLoadingViolations.value = false
+  }
+}
+
+const openAnswerReview = async (st) => {
+  if (!st.session_id) return
+  showAnswerReview.value = true
+  reviewLoading.value = true
+  reviewSessionData.value = null
+  try {
+    const res = await api.get(`/proctor/sessions/${st.session_id}/answers`)
+    reviewSessionData.value = res.data.data
+  } catch (e) {
+    showAnswerReview.value = false
+    showToast('Gagal memuat data jawaban siswa.', 'error')
+  } finally {
+    reviewLoading.value = false
   }
 }
 

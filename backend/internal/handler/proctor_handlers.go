@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"cbt-backend/internal/domain"
 	"cbt-backend/internal/middleware"
@@ -338,4 +340,109 @@ func (h *Handlers) HandleExportBeritaAcaraPDF(c *fiber.Ctx) error {
 	c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 
 	return c.Send(pdfBytes)
+}
+
+func (h *Handlers) HandleGetSessionAnswers(c *fiber.Ctx) error {
+	sessionID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "ID sesi tidak valid"})
+	}
+
+	if h.denySessionView(c, sessionID) {
+		return nil
+	}
+
+	var session domain.ExamSession
+	if err := h.repo.DB.Preload("Schedule").First(&session, "id = ?", sessionID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "Sesi ujian tidak ditemukan"})
+	}
+
+	isSubmitted := session.Status == domain.StatusSubmitted
+
+	var student domain.User
+	h.repo.DB.First(&student, "id = ?", session.StudentID)
+	var profile domain.StudentProfile
+	h.repo.DB.Where("user_id = ?", session.StudentID).First(&profile)
+
+	if session.Schedule.BankID == nil {
+		return c.JSON(fiber.Map{"success": true, "data": fiber.Map{"questions": []interface{}{}}})
+	}
+
+	var questions []domain.Question
+	h.repo.DB.Where("bank_id = ?", session.Schedule.BankID).Order("question_number ASC").Find(&questions)
+
+	var answers []domain.StudentAnswer
+	h.repo.DB.Where("session_id = ?", sessionID).Find(&answers)
+	answerMap := make(map[uuid.UUID]domain.StudentAnswer)
+	for _, a := range answers {
+		answerMap[a.QuestionID] = a
+	}
+
+	type OptionResult struct {
+		Key      string `json:"key"`
+		Text     string `json:"text"`
+		ImageURL string `json:"image_url,omitempty"`
+	}
+	type QuestionResult struct {
+		QuestionNumber int           `json:"question_number"`
+		Type           string        `json:"type"`
+		ContentHTML    string        `json:"content_html"`
+		ScoreWeight    float64       `json:"score_weight"`
+		Options        []OptionResult `json:"options"`
+		CorrectKey     string        `json:"correct_key"`
+		SelectedOption string        `json:"selected_option"`
+		AnswerText     string        `json:"answer_text"`
+		IsCorrect      *bool         `json:"is_correct"`
+		ScoreAwarded   *float64      `json:"score_awarded"`
+		IsGraded       bool          `json:"is_graded"`
+	}
+
+	result := make([]QuestionResult, 0, len(questions))
+	for _, q := range questions {
+		var opts []domain.OptionItem
+		_ = json.Unmarshal([]byte(q.OptionsJSON), &opts)
+		optResults := make([]OptionResult, 0, len(opts))
+		for _, o := range opts {
+			optResults = append(optResults, OptionResult{Key: o.Key, Text: o.Text, ImageURL: o.ImageURL})
+		}
+
+		ans := answerMap[q.ID]
+		var isCorrect *bool
+		correctKey := ""
+
+		if isSubmitted {
+			correctKey = q.CorrectKey
+			if q.Type == domain.TypeMultipleChoice || q.Type == "" {
+				correct := ans.SelectedOption != "" && strings.EqualFold(ans.SelectedOption, q.CorrectKey)
+				isCorrect = &correct
+			}
+		}
+
+		result = append(result, QuestionResult{
+			QuestionNumber: q.QuestionNumber,
+			Type:           string(q.Type),
+			ContentHTML:    q.ContentHTML,
+			ScoreWeight:    q.ScoreWeight,
+			Options:        optResults,
+			CorrectKey:     correctKey,
+			SelectedOption: ans.SelectedOption,
+			AnswerText:     ans.AnswerText,
+			IsCorrect:      isCorrect,
+			ScoreAwarded:   ans.ScoreAwarded,
+			IsGraded:       ans.IsGraded,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data": fiber.Map{
+			"student_name":   student.FullName,
+			"student_nis":    profile.NIS,
+			"schedule_title": session.Schedule.Title,
+			"total_score":    session.TotalScore,
+			"status":         string(session.Status),
+			"is_submitted":   isSubmitted,
+			"questions":      result,
+		},
+	})
 }
