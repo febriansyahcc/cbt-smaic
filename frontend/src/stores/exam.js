@@ -288,6 +288,8 @@ export const useExamStore = defineStore('exam', {
     },
 
     async reportViolation(eventType, details) {
+      // SEMENTARA DINONAKTIFKAN — aktifkan kembali setelah sistem stabil
+      return
       if (this.isBlocked || !this.sessionId) return
       try {
         const res = await api.post('/student/exams/violation', {
