@@ -40,8 +40,9 @@ export function useAntiCheat(examStore, onWarningModal) {
 
   let lastTriggerTime = 0
   const triggerViolation = (type, message) => {
+    // SEMENTARA DINONAKTIFKAN — aktifkan kembali setelah sistem stabil
+    return
     const now = Date.now()
-    // Debounce triggers by 1.5 seconds so a blur followed by visibilitychange counts as 1 violation
     if (now - lastTriggerTime < 1500) return
     lastTriggerTime = now
 
