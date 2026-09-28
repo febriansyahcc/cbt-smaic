@@ -4,6 +4,7 @@ import StudentHomeView from '../views/student/StudentHomeView.vue'
 import ExamView from '../views/student/ExamView.vue'
 import ExamFinishedView from '../views/student/ExamFinishedView.vue'
 import { homePathFor, isStaffUser } from '../utils/access'
+import { useAuthStore } from '../stores/auth'
 
 const routes = [
   {
@@ -66,24 +67,59 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('cbt_token')
-  const userRaw = localStorage.getItem('cbt_user')
+let sessionValidated = false
 
-  if (to.meta.requiresAuth) {
-    if (!token || !userRaw) {
+// Token di localStorage bisa milik sesi yang sudah berakhir atau — pada komputer sekolah yang
+// dipakai bergantian — milik siswa sebelumnya yang menutup browser tanpa logout. Sekali per
+// pemuatan halaman, token itu divalidasi ke server sebelum halaman apa pun dirender, sehingga
+// identitas yang dipakai selalu yang diakui server. Kegagalan jaringan sengaja tidak memblokir
+// (ujian harus tetap bisa dimasuki saat jaringan tersendat); hanya 401 yang membersihkan sesi,
+// dan itu ditangani interceptor di services/api.js.
+const validateStoredSession = async () => {
+  if (sessionValidated) return
+  // Perangkat sedang offline: validasi dilewati tanpa menandai selesai, agar alur ujian tetap
+  // bisa dibuka dari data lokal dan pemeriksaan terjadi saat jaringan kembali.
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+  sessionValidated = true
+  try {
+    await useAuthStore().fetchMe({ timeout: 8000 })
+  } catch (e) {
+    // Jaringan tersendat: lanjutkan dengan data lokal, jangan halangi siswa masuk ujian.
+  }
+}
+
+router.beforeEach(async (to, from, next) => {
+  if (!to.meta.requiresAuth) {
+    return next()
+  }
+
+  if (!localStorage.getItem('cbt_token') || !localStorage.getItem('cbt_user')) {
+    return next('/login')
+  }
+
+  await validateStoredSession()
+
+  // Dibaca ulang: validasi di atas bisa mengganti atau menghapus data sesi.
+  const userRaw = localStorage.getItem('cbt_user')
+  if (!localStorage.getItem('cbt_token') || !userRaw) {
+    return next('/login')
+  }
+
+  let user
+  try {
+    user = JSON.parse(userRaw)
+  } catch (e) {
+    return next('/login')
+  }
+
+  if (to.meta.staff && !isStaffUser(user)) {
+    const home = homePathFor(user)
+    return next(home === to.fullPath ? '/login' : home)
+  }
+  if (to.meta.role) {
+    const allowed = Array.isArray(to.meta.role) ? to.meta.role : [to.meta.role]
+    if (!allowed.includes(user.role) && user.role !== 'ADMIN') {
       return next('/login')
-    }
-    const user = JSON.parse(userRaw)
-    if (to.meta.staff && !isStaffUser(user)) {
-      const home = homePathFor(user)
-      return next(home === to.fullPath ? '/login' : home)
-    }
-    if (to.meta.role) {
-      const allowed = Array.isArray(to.meta.role) ? to.meta.role : [to.meta.role]
-      if (!allowed.includes(user.role) && user.role !== 'ADMIN') {
-        return next('/login')
-      }
     }
   }
   next()

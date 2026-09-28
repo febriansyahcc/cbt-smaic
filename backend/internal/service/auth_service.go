@@ -41,10 +41,15 @@ func (s *AuthService) Login(username, password, clientIP, userAgent string) (*Lo
 		return nil, errors.New("akun dinonaktifkan")
 	}
 
-	// Generate new session ID for single-device lock
+	// Sesi perangkat tunggal. Penyimpanan sid WAJIB diperiksa: bila tulisan ini gagal, token yang
+	// diterbitkan membawa sid yang tidak pernah tersimpan, sehingga setiap request berikutnya
+	// ditolak middleware sebagai CONCURRENT_LOGIN dan siswa terus terlempar ke halaman login
+	// meski kredensialnya benar.
 	sessionID := uuid.New().String()
+	if err := s.repo.DB.Model(&user).Update("session_token", sessionID).Error; err != nil {
+		return nil, errors.New("gagal menyimpan sesi login, silakan coba lagi")
+	}
 	user.SessionToken = sessionID
-	s.repo.DB.Model(&user).Update("session_token", sessionID)
 
 	token, err := middleware.GenerateToken(user, sessionID)
 	if err != nil {
