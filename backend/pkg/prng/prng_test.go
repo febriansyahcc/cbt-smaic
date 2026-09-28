@@ -55,3 +55,44 @@ func TestSeededRandomizerConsistency(t *testing.T) {
 		t.Logf("Warning: Both shuffles resulted in identical order (possible for small sets)")
 	}
 }
+
+func TestShuffleByGroupKeepsTypesSegregated(t *testing.T) {
+	mcIDs := []uuid.UUID{uuid.New(), uuid.New(), uuid.New()}
+	esIDs := []uuid.UUID{uuid.New(), uuid.New()}
+
+	questions := []domain.Question{
+		{ID: mcIDs[0], QuestionNumber: 1, Type: domain.TypeMultipleChoice},
+		{ID: mcIDs[1], QuestionNumber: 2, Type: domain.TypeMultipleChoice},
+		{ID: esIDs[0], QuestionNumber: 3, Type: domain.TypeEssay},
+		{ID: mcIDs[2], QuestionNumber: 4, Type: domain.TypeMultipleChoice},
+		{ID: esIDs[1], QuestionNumber: 5, Type: domain.TypeEssay},
+	}
+
+	seed := GenerateSeed("student-abc", "schedule-xyz")
+	result := ShuffleByGroup(questions, seed)
+
+	if len(result) != 5 {
+		t.Fatalf("Expected 5 questions, got %d", len(result))
+	}
+
+	// First 3 must all be MULTIPLE_CHOICE
+	for i := 0; i < 3; i++ {
+		if result[i].Type != domain.TypeMultipleChoice {
+			t.Errorf("Position %d: expected MULTIPLE_CHOICE, got %s", i, result[i].Type)
+		}
+	}
+	// Last 2 must all be ESSAY
+	for i := 3; i < 5; i++ {
+		if result[i].Type != domain.TypeEssay {
+			t.Errorf("Position %d: expected ESSAY, got %s", i, result[i].Type)
+		}
+	}
+
+	// Deterministic: same seed → same result
+	result2 := ShuffleByGroup(questions, seed)
+	for i := range result {
+		if result[i].ID != result2[i].ID {
+			t.Errorf("Not deterministic at index %d", i)
+		}
+	}
+}

@@ -230,7 +230,7 @@ func (s *ExamService) StartOrResumeExam(studentUserID uuid.UUID, scheduleID uuid
 	// Seeded Randomization
 	masterSeed := prng.GenerateSeed(studentUserID.String(), schedule.ID.String())
 	if schedule.RandomizeQuestions {
-		questions = prng.ShuffleQuestions(questions, masterSeed)
+		questions = prng.ShuffleByGroup(questions, masterSeed)
 	}
 
 	var clientQuestions []ClientQuestion

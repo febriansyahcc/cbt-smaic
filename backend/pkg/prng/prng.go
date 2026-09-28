@@ -39,6 +39,42 @@ func ShuffleQuestions(questions []domain.Question, seed int64) []domain.Question
 	return shuffled
 }
 
+// ShuffleByGroup shuffles questions within type-groups so that MULTIPLE_CHOICE questions
+// always come before SHORT_ANSWER, and SHORT_ANSWER before ESSAY. Within each group,
+// order is shuffled using a deterministic sub-seed derived from the master seed.
+func ShuffleByGroup(questions []domain.Question, masterSeed int64) []domain.Question {
+	mc := make([]domain.Question, 0, len(questions))
+	sa := make([]domain.Question, 0)
+	es := make([]domain.Question, 0)
+
+	for _, q := range questions {
+		t := q.Type
+		if t == "" {
+			t = domain.TypeMultipleChoice
+		}
+		switch t {
+		case domain.TypeShortAnswer:
+			sa = append(sa, q)
+		case domain.TypeEssay:
+			es = append(es, q)
+		default:
+			mc = append(mc, q)
+		}
+	}
+
+	result := make([]domain.Question, 0, len(questions))
+	if len(mc) > 0 {
+		result = append(result, ShuffleQuestions(mc, GenerateSubSeed(masterSeed, "MC"))...)
+	}
+	if len(sa) > 0 {
+		result = append(result, ShuffleQuestions(sa, GenerateSubSeed(masterSeed, "SA"))...)
+	}
+	if len(es) > 0 {
+		result = append(result, ShuffleQuestions(es, GenerateSubSeed(masterSeed, "ES"))...)
+	}
+	return result
+}
+
 // ShuffleOptions returns a shuffled copy of OptionItems using a sub-seed
 func ShuffleOptions(options []domain.OptionItem, subSeed int64) []domain.OptionItem {
 	if len(options) <= 1 {
