@@ -18,6 +18,22 @@ import (
 	"gorm.io/gorm"
 )
 
+// closeDB menutup koneksi *sql.DB milik GORM saat tes selesai. Wajib dipanggil
+// setelah t.TempDir() supaya cleanup-nya berjalan sebelum direktori sementara
+// dihapus, sebab Windows menolak menghapus berkas database yang masih terbuka.
+func closeDB(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("gagal mengambil *sql.DB: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("gagal menutup koneksi database: %v", err)
+		}
+	})
+}
+
 func newBackupFixture(t *testing.T) (*BackupService, *gorm.DB, string) {
 	t.Helper()
 	root := t.TempDir()
@@ -25,6 +41,9 @@ func newBackupFixture(t *testing.T) (*BackupService, *gorm.DB, string) {
 	if err != nil {
 		t.Fatalf("gagal membuka sqlite: %v", err)
 	}
+	// Didaftarkan setelah t.TempDir() agar berjalan lebih dulu (cleanup LIFO):
+	// di Windows berkas cbt.db tidak bisa dihapus selama handle-nya masih terbuka.
+	closeDB(t, db)
 	if err := db.AutoMigrate(&domain.User{}, &domain.ClassRoom{}, &domain.ExamSchedule{}, &domain.ExamSession{}); err != nil {
 		t.Fatalf("auto-migrate gagal: %v", err)
 	}
@@ -113,6 +132,7 @@ func TestBackupCreateSQLiteArchive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("salinan database tidak bisa dibuka: %v", err)
 	}
+	closeDB(t, rdb)
 	var count int64
 	rdb.Model(&domain.User{}).Count(&count)
 	if count != 1 {
