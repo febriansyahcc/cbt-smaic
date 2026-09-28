@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"cbt-backend/internal/domain"
 	"cbt-backend/internal/middleware"
@@ -32,8 +33,11 @@ func (h *Handlers) HandleGetProctorSchedules(c *fiber.Ctx) error {
 
 	items := make([]proctorScheduleItem, 0)
 	if viewScope.All || len(viewScope.ScheduleIDs) > 0 {
+		// Tampilkan jadwal aktif ATAU yang baru selesai dalam 7 hari terakhir
+		// agar guru mapel masih bisa melihat riwayat jawaban siswa pasca ujian.
+		recentCutoff := time.Now().Add(-7 * 24 * time.Hour)
 		query := h.repo.DB.Preload("Bank").Preload("Bank.Subject").Preload("ClassRoom").
-			Where("is_active = ?", true)
+			Where("is_active = ? OR end_time >= ?", true, recentCutoff)
 		if !viewScope.All {
 			ids := make([]uuid.UUID, 0, len(viewScope.ScheduleIDs))
 			for id := range viewScope.ScheduleIDs {
