@@ -368,7 +368,7 @@
               'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold',
               essayTotalPending === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
             ]"
-          >{{ essayTotalPending === 0 ? 'Selesai' : essayTotalPending }}</span>
+          >{{ essayTotalPending === 0 ? '✓ Selesai' : essayTotalPending + ' belum' }}</span>
         </button>
         <button
           v-if="selectedScheduleDetail.is_makeup"
@@ -477,26 +477,57 @@
           <p class="text-xs font-medium text-slate-500 text-center">Jadwal ini tidak memiliki soal essay atau isian singkat.</p>
         </div>
 
-        <!-- Question cards -->
-        <div v-else class="space-y-5">
+        <div v-else class="space-y-4">
+          <!-- Progress overview bar -->
+          <div :class="[
+            'flex items-center justify-between px-3 py-2.5 rounded-xl border',
+            essayTotalPending === 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'
+          ]">
+            <div class="flex items-center gap-2">
+              <svg v-if="essayTotalPending === 0" class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <svg v-else class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span :class="['font-bold', essayTotalPending === 0 ? 'text-emerald-700' : 'text-amber-700']">
+                {{ essayTotalPending === 0 ? 'Semua jawaban sudah dinilai' : essayTotalPending + ' jawaban belum dinilai' }}
+              </span>
+            </div>
+            <span class="text-slate-500 font-medium">
+              {{ essayQuestions.filter(q => q.graded_count >= q.total_count && q.total_count > 0).length }} / {{ essayQuestions.length }} soal selesai
+            </span>
+          </div>
+
+          <!-- Question cards -->
           <div
             v-for="q in essayQuestions"
             :key="q.question_id"
-            class="border border-slate-200 rounded-2xl overflow-hidden"
+            :class="[
+              'border rounded-2xl overflow-hidden',
+              q.graded_count >= q.total_count && q.total_count > 0 ? 'border-emerald-200' : 'border-slate-200'
+            ]"
           >
             <!-- Question header -->
-            <div class="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+            <div :class="[
+              'flex items-center justify-between px-4 py-3 border-b',
+              q.graded_count >= q.total_count && q.total_count > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'
+            ]">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-black text-slate-800 text-[13px]">No. {{ q.question_number }}</span>
                 <span class="px-2 py-0.5 bg-white border border-slate-200 text-slate-600 rounded-md text-[10px] font-bold uppercase">{{ q.question_type }}</span>
                 <span class="text-slate-500 font-medium">Bobot {{ q.score_weight }}</span>
               </div>
-              <span :class="[
-                'px-2 py-0.5 rounded-full text-[10px] font-bold',
-                q.graded_count >= q.total_count ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-              ]">
-                {{ q.graded_count }} / {{ q.total_count }} dinilai
-              </span>
+              <!-- Badge: berapa sudah vs belum, arah jelas -->
+              <div class="flex items-center gap-1.5">
+                <span v-if="q.graded_count > 0" class="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  {{ q.graded_count }} sudah
+                </span>
+                <span v-if="q.total_count - q.graded_count > 0" class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold">
+                  {{ q.total_count - q.graded_count }} belum
+                </span>
+              </div>
             </div>
 
             <!-- Question text -->
@@ -504,67 +535,91 @@
               <RichContentRenderer :content="q.content_html" custom-class="text-slate-700 font-medium leading-relaxed" />
             </div>
 
-            <!-- Answers -->
+            <!-- Answer rows -->
             <div class="divide-y divide-slate-100">
               <div
                 v-for="a in q.answers"
                 :key="a.answer_id"
-                class="px-4 py-3 space-y-2.5"
-                :class="a.is_graded ? 'bg-emerald-50/40' : 'bg-white'"
+                class="relative flex gap-0"
               >
-                <!-- Student info -->
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="font-bold text-slate-800">{{ a.student_name }}</span>
-                    <span class="text-slate-400 font-mono text-[11px]">{{ a.student_nis }}</span>
-                  </div>
-                  <span v-if="a.is_graded" class="flex items-center gap-1 text-emerald-600 font-bold text-[11px]">
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Sudah dinilai
-                  </span>
-                </div>
+                <!-- Left border indicator: hijau = sudah, amber = belum, abu = tidak menjawab -->
+                <div :class="[
+                  'w-1 shrink-0',
+                  a.is_graded ? 'bg-emerald-400' : (a.answer_text ? 'bg-amber-400' : 'bg-slate-300')
+                ]"></div>
 
-                <!-- Answer text -->
-                <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
-                  <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Jawaban Siswa:</div>
-                  <div class="text-slate-700 leading-relaxed whitespace-pre-wrap">{{ a.answer_text || '(Tidak ada jawaban)' }}</div>
-                </div>
-
-                <!-- Grading inputs -->
-                <div class="flex items-start gap-2 flex-wrap">
-                  <div class="flex items-center gap-1.5">
-                    <label :for="`score-${a.answer_id}`" class="text-slate-600 font-semibold whitespace-nowrap">Nilai:</label>
-                    <input
-                      :id="`score-${a.answer_id}`"
-                      type="number"
-                      min="0"
-                      :max="q.score_weight"
-                      step="0.5"
-                      :value="essayDraft[a.answer_id]?.score_awarded ?? ''"
-                      @input="e => { if (!essayDraft[a.answer_id]) essayDraft[a.answer_id] = { score_awarded: null, teacher_comment: '' }; essayDraft[a.answer_id].score_awarded = e.target.value === '' ? null : parseFloat(e.target.value) }"
-                      class="w-20 px-2 py-1.5 border border-slate-300 rounded-xl font-mono text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
-                      :placeholder="`/ ${q.score_weight}`"
-                    />
+                <div class="flex-1 px-4 py-3 space-y-2.5" :class="a.is_graded ? 'bg-emerald-50/20' : 'bg-white'">
+                  <!-- Student header -->
+                  <div class="flex items-center justify-between flex-wrap gap-1">
+                    <div class="flex items-center gap-2">
+                      <span class="font-bold text-slate-800">{{ a.student_name }}</span>
+                      <span class="text-slate-400 font-mono text-[11px]">{{ a.student_nis }}</span>
+                    </div>
+                    <!-- Status + nilai tersimpan -->
+                    <div class="flex items-center gap-1.5">
+                      <span v-if="!a.answer_text" class="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-semibold">
+                        Tidak menjawab
+                      </span>
+                      <span v-if="a.is_graded" class="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Nilai: {{ a.score_awarded }} / {{ q.score_weight }}
+                      </span>
+                      <span v-else-if="a.answer_text" class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-semibold">
+                        Belum dinilai
+                      </span>
+                    </div>
                   </div>
-                  <div class="flex-1 flex items-center gap-1.5 min-w-[140px]">
-                    <label :for="`comment-${a.answer_id}`" class="text-slate-600 font-semibold whitespace-nowrap">Komentar:</label>
-                    <input
-                      :id="`comment-${a.answer_id}`"
-                      type="text"
-                      :value="essayDraft[a.answer_id]?.teacher_comment ?? ''"
-                      @input="e => { if (!essayDraft[a.answer_id]) essayDraft[a.answer_id] = { score_awarded: null, teacher_comment: '' }; essayDraft[a.answer_id].teacher_comment = e.target.value }"
-                      class="flex-1 px-2 py-1.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
-                      placeholder="Opsional..."
-                    />
+
+                  <!-- Answer text (max height to prevent super long answers) -->
+                  <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Jawaban Siswa:</div>
+                    <div class="text-slate-700 leading-relaxed whitespace-pre-wrap max-h-24 overflow-y-auto">
+                      {{ a.answer_text || '(Tidak ada jawaban)' }}
+                    </div>
+                  </div>
+
+                  <!-- Grading inputs -->
+                  <div class="flex items-center gap-3 flex-wrap">
+                    <div class="flex items-center gap-1.5">
+                      <label :for="`score-${a.answer_id}`" class="text-slate-600 font-semibold whitespace-nowrap">Nilai:</label>
+                      <input
+                        :id="`score-${a.answer_id}`"
+                        type="number"
+                        min="0"
+                        :max="q.score_weight"
+                        step="0.5"
+                        :value="essayDraft[a.answer_id]?.score_awarded ?? ''"
+                        @input="e => { if (!essayDraft[a.answer_id]) essayDraft[a.answer_id] = { score_awarded: null, teacher_comment: '' }; essayDraft[a.answer_id].score_awarded = e.target.value === '' ? null : parseFloat(e.target.value) }"
+                        class="w-20 px-2 py-1.5 border border-slate-300 rounded-xl font-mono text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
+                        :placeholder="`/ ${q.score_weight}`"
+                      />
+                    </div>
+                    <div class="flex-1 flex items-center gap-1.5 min-w-[140px]">
+                      <label :for="`comment-${a.answer_id}`" class="text-slate-600 font-semibold whitespace-nowrap">Komentar:</label>
+                      <input
+                        :id="`comment-${a.answer_id}`"
+                        type="text"
+                        :value="essayDraft[a.answer_id]?.teacher_comment ?? ''"
+                        @input="e => { if (!essayDraft[a.answer_id]) essayDraft[a.answer_id] = { score_awarded: null, teacher_comment: '' }; essayDraft[a.answer_id].teacher_comment = e.target.value }"
+                        class="flex-1 px-2 py-1.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
+                        placeholder="Opsional..."
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Save button per question -->
-            <div class="px-4 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+            <div :class="[
+              'px-4 py-3 border-t flex items-center justify-between',
+              q.graded_count >= q.total_count && q.total_count > 0 ? 'bg-emerald-50/50 border-emerald-100' : 'bg-slate-50 border-slate-100'
+            ]">
+              <span class="text-slate-400 text-[11px]">
+                Simpan sekaligus semua nilai untuk soal ini
+              </span>
               <button
                 type="button"
                 @click="saveEssayQuestion(q)"
@@ -575,7 +630,10 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
-                <span>{{ essaySaving[q.question_id] ? 'Menyimpan...' : `Simpan Penilaian Soal No. ${q.question_number}` }}</span>
+                <svg v-else class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>{{ essaySaving[q.question_id] ? 'Menyimpan...' : 'Simpan Nilai Soal Ini' }}</span>
               </button>
             </div>
           </div>
