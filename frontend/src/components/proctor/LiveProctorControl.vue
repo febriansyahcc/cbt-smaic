@@ -372,6 +372,21 @@
                     <span>Selesaikan</span>
                   </button>
 
+                  <!-- Reset Sesi Ujian -->
+                  <button
+                    v-if="st.status === 'SUBMITTED' && st.session_id"
+                    type="button"
+                    @click="handleResetExam(st)"
+                    :disabled="!canControl"
+                    class="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    :title="canControl ? 'Hapus sesi ujian agar siswa dapat mengulang dari awal' : controlDisabledHint"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Reset Sesi</span>
+                  </button>
+
                   <!-- Reset Login HP -->
                   <button
                     type="button"
@@ -1029,6 +1044,30 @@ const handleResetDevice = async (st) => {
     await showAlertModal({
       title: 'Gagal Reset Sesi',
       message: err.response?.data?.message || 'Terjadi kesalahan saat mereset sesi perangkat.',
+      type: 'danger'
+    })
+  }
+}
+
+const handleResetExam = async (st) => {
+  if (!canControl.value || !st.session_id) return
+  const confirmed = await showConfirmModal({
+    title: 'Reset Sesi Ujian',
+    message: `Hapus sesi ujian ${st.full_name} dan semua jawabannya? Siswa akan dapat mengulang ujian dari awal dengan waktu penuh. Tindakan ini tidak dapat dibatalkan.`,
+    type: 'danger',
+    confirmText: 'Reset Sesi',
+    cancelText: 'Batal'
+  })
+  if (!confirmed) return
+
+  try {
+    await api.post(`/proctor/sessions/${st.session_id}/reset-exam`)
+    showToast(`Sesi ujian ${st.full_name} berhasil direset. Siswa dapat mengulang dari awal.`, 'success')
+    await refreshData()
+  } catch (err) {
+    await showAlertModal({
+      title: 'Gagal Reset Sesi',
+      message: err.response?.data?.message || 'Terjadi kesalahan saat mereset sesi ujian.',
       type: 'danger'
     })
   }
