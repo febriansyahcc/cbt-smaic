@@ -265,9 +265,16 @@ export const useExamStore = defineStore('exam', {
           session_id: this.sessionId,
           answers: pendingItems,
         })
-        const syncedIds = pendingItems.map((p) => p.question_id)
-        localExamStorage.clearPendingItems(this.sessionId, syncedIds)
-        this.syncError = ''
+        // Hanya hapus queue jika server mengonfirmasi minimal satu jawaban tersimpan.
+        // Jika synced = 0 dengan item non-kosong, berarti semua item ditolak (bank berubah
+        // atau masalah lain) — pertahankan queue agar coba lagi di heartbeat berikutnya.
+        if (pendingItems.length === 0 || res.data.synced > 0) {
+          const syncedIds = pendingItems.map((p) => p.question_id)
+          localExamStorage.clearPendingItems(this.sessionId, syncedIds)
+          this.syncError = ''
+        } else {
+          this.syncError = 'Sinkronisasi jawaban tertunda, menunggu konfirmasi server'
+        }
         this.applyServerClock(res.data.server_time, res.data.server_deadline)
       } catch (err) {
         // Tanpa respons = jaringan putus; antrean tetap disimpan dan dicoba lagi. Dengan respons =
@@ -316,11 +323,17 @@ export const useExamStore = defineStore('exam', {
       // Flush pending queue first
       await this.flushSyncQueue()
 
+      // Kumpulkan sisa pending yang mungkin belum tersinkron (flush bisa gagal karena jaringan
+      // atau grace deadline habis). Dikirim bersama request submit agar backend simpan atomik
+      // sebelum penilaian — pengaman terakhir agar jawaban tidak hilang.
+      const remainingPending = localExamStorage.getPendingQueue(this.sessionId)
+
       // Catat waktu tepat sebelum request — mendekati submitted_at di server
       const submittedAt = new Date()
 
       const res = await api.post('/student/exams/submit', {
         session_id: this.sessionId,
+        answers: remainingPending,
       })
 
       this.scoreResult = res.data.total_score

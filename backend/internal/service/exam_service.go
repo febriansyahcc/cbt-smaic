@@ -215,7 +215,7 @@ func (s *ExamService) StartOrResumeExam(studentUserID uuid.UUID, scheduleID uuid
 
 	// Waktu habis: kumpulkan dan nilai jawaban yang sudah tersinkron, bukan sekadar menandai selesai.
 	if now.After(session.ServerDeadline) {
-		if _, err := s.SubmitExam(session.ID, studentUserID); err != nil {
+		if _, err := s.SubmitExam(session.ID, studentUserID, nil); err != nil {
 			return nil, err
 		}
 		return nil, errors.New("waktu pengerjaan ujian telah habis")
@@ -440,20 +440,21 @@ var errSessionBlocked = errors.New("ujian Anda sedang terkunci. Hubungi pengawas
 
 // SubmitExam dipanggil siswa. Sesi yang terkunci tidak bisa dikumpulkan sendiri: pengawas yang
 // memutuskan membuka kunci atau mengumpulkan paksa (ForceSubmit).
-func (s *ExamService) SubmitExam(sessionID uuid.UUID, studentUserID uuid.UUID) (float64, error) {
-	return s.submitExam(sessionID, studentUserID, false)
+// finalAnswers adalah sisa pending queue klien yang belum tersinkron; disimpan atomik sebelum penilaian.
+func (s *ExamService) SubmitExam(sessionID uuid.UUID, studentUserID uuid.UUID, finalAnswers []SyncAnswerItem) (float64, error) {
+	return s.submitExam(sessionID, studentUserID, false, finalAnswers)
 }
 
 // ForceSubmit dipanggil pengawas dan boleh mengumpulkan sesi yang terkunci.
 func (s *ExamService) ForceSubmit(sessionID uuid.UUID, studentUserID uuid.UUID) (float64, error) {
-	return s.submitExam(sessionID, studentUserID, true)
+	return s.submitExam(sessionID, studentUserID, true, nil)
 }
 
 // submitExam finalizes the exam and auto-calculates total score for multiple choice & short answers.
 // Sesi "diklaim" lebih dulu dengan UPDATE bersyarat status <> SUBMITTED di dalam transaksi: dari
 // beberapa submit bersamaan (siswa, timer habis, pengawas) hanya satu yang menilai, sisanya
 // mengembalikan nilai yang sudah tersimpan.
-func (s *ExamService) submitExam(sessionID uuid.UUID, studentUserID uuid.UUID, allowBlocked bool) (float64, error) {
+func (s *ExamService) submitExam(sessionID uuid.UUID, studentUserID uuid.UUID, allowBlocked bool, finalAnswers []SyncAnswerItem) (float64, error) {
 	var finalGrade float64
 	err := s.repo.DB.Transaction(func(tx *gorm.DB) error {
 		var session domain.ExamSession
@@ -493,6 +494,32 @@ func (s *ExamService) submitExam(sessionID uuid.UUID, studentUserID uuid.UUID, a
 			}
 			finalGrade = session.TotalScore
 			return nil
+		}
+
+		// Simpan sisa jawaban yang belum tersinkron dari klien sebelum penilaian.
+		// Ini adalah pengaman terakhir: jika sync berkala gagal karena jaringan atau
+		// grace deadline habis, jawaban dari pending queue tetap tersimpan.
+		if len(finalAnswers) > 0 {
+			validIDs, _ := s.bankQuestionIDs(session.Schedule.BankID, finalAnswers)
+			now2 := time.Now()
+			for _, item := range finalAnswers {
+				if !validIDs[item.QuestionID] {
+					continue
+				}
+				ans := domain.StudentAnswer{
+					ID:             uuid.New(),
+					SessionID:      sessionID,
+					QuestionID:     item.QuestionID,
+					SelectedOption: item.SelectedOption,
+					AnswerText:     item.AnswerText,
+					IsDoubtful:     item.IsDoubtful,
+					LastUpdatedAt:  now2,
+				}
+				tx.Clauses(clause.OnConflict{
+					Columns:   []clause.Column{{Name: "session_id"}, {Name: "question_id"}},
+					DoUpdates: clause.AssignmentColumns([]string{"selected_option", "answer_text", "is_doubtful", "last_updated_at"}),
+				}).Create(&ans)
+			}
 		}
 
 		// Fetch all questions in bank with correct keys

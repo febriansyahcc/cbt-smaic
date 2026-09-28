@@ -131,7 +131,8 @@ func (h *Handlers) HandleRecordViolation(c *fiber.Ctx) error {
 }
 
 type SubmitExamRequest struct {
-	SessionID uuid.UUID `json:"session_id"`
+	SessionID uuid.UUID                `json:"session_id"`
+	Answers   []service.SyncAnswerItem `json:"answers,omitempty"`
 }
 
 func (h *Handlers) HandleSubmitExam(c *fiber.Ctx) error {
@@ -145,7 +146,7 @@ func (h *Handlers) HandleSubmitExam(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Session ID wajib disertakan"})
 	}
 
-	score, err := h.examService.SubmitExam(req.SessionID, user.ID)
+	score, err := h.examService.SubmitExam(req.SessionID, user.ID, req.Answers)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
 	}
