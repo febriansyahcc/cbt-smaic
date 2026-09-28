@@ -75,7 +75,7 @@ func TestConcurrentSubmitsGradeOnce(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			score, err := exam.SubmitExam(id, f.siswa.ID)
+			score, err := exam.SubmitExam(id, f.siswa.ID, nil)
 			if err != nil {
 				t.Error(err)
 			}
@@ -166,7 +166,7 @@ func TestBlockedStudentCannotSubmitButProctorCan(t *testing.T) {
 	f, exam, proctor, id := newSessionFixture(t, domain.StatusBlocked, 3)
 	linkBankWithQuestion(t, f, id)
 
-	if _, err := exam.SubmitExam(id, f.siswa.ID); err == nil {
+	if _, err := exam.SubmitExam(id, f.siswa.ID, nil); err == nil {
 		t.Fatal("siswa yang terkunci tidak boleh mengumpulkan sendiri")
 	}
 	if s := loadSession(t, f, id); s.Status != domain.StatusBlocked {
