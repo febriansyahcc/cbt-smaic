@@ -220,6 +220,8 @@ func main() {
 	essayGrade := perm(pQuestionsUpload, pQuestionsManage, pSchedulesManage)
 	admin.Get("/schedules/:id/essay-answers", essayGrade, handlers.HandleGetEssayAnswers)
 	admin.Patch("/schedules/:id/essay-answers", essayGrade, handlers.HandleGradeEssayAnswers)
+	admin.Get("/schedules/:id/sessions", essayGrade, handlers.HandleGetScheduleSessions)
+	admin.Get("/schedules/:id/sessions/:session_id/answers", essayGrade, handlers.HandleGetScheduleSessionAnswers)
 	admin.Get("/schedules/:id/proctors", perm(pSchedulesRead, pSchedulesManage), handlers.HandleGetScheduleProctors)
 	admin.Get("/proctor-candidates", schedulesMgr, handlers.HandleGetProctorCandidates)
 	admin.Put("/schedules/:id/proctors", schedulesMgr, handlers.HandleSetScheduleProctors)

@@ -371,6 +371,17 @@
           >{{ essayTotalPending === 0 ? '✓ Selesai' : essayTotalPending + ' belum' }}</span>
         </button>
         <button
+          v-if="canGradeEssay(selectedScheduleDetail)"
+          type="button"
+          @click="switchToSessionsTab()"
+          :class="[
+            'px-3 py-2 text-xs font-semibold rounded-t-xl transition cursor-pointer border-b-2 -mb-px',
+            scheduleDetailTab === 'sessions'
+              ? 'text-indigo-700 border-indigo-600 bg-indigo-50/60'
+              : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
+          ]"
+        >Riwayat Jawaban</button>
+        <button
           v-if="selectedScheduleDetail.is_makeup"
           type="button"
           @click="scheduleDetailTab = 'makeup'; loadMakeupStudents(selectedScheduleDetail.id)"
@@ -640,6 +651,70 @@
         </div>
       </div>
 
+      <!-- Tab: Riwayat Jawaban -->
+      <div v-else-if="scheduleDetailTab === 'sessions'" class="overflow-y-auto flex-1 p-4 space-y-3 text-xs">
+        <!-- Loading -->
+        <div v-if="sessionsLoading" class="flex flex-col items-center justify-center py-12 gap-3 text-slate-400">
+          <svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span class="text-xs font-medium">Memuat riwayat ujian...</span>
+        </div>
+
+        <!-- Empty -->
+        <div v-else-if="sessionsList.length === 0" class="flex flex-col items-center justify-center py-12 gap-2 text-slate-400">
+          <p class="text-xs font-medium text-slate-500 text-center">Belum ada siswa yang mengikuti ujian ini.</p>
+        </div>
+
+        <!-- Sessions list -->
+        <div v-else class="space-y-1.5">
+          <div
+            v-for="s in sessionsList"
+            :key="s.session_id"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition"
+          >
+            <!-- Student info -->
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-slate-800 truncate">{{ s.student_name }}</div>
+              <div class="text-[10px] text-slate-500 font-mono mt-0.5">{{ s.student_nis }}</div>
+            </div>
+
+            <!-- Status badge -->
+            <span :class="[
+              'px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0',
+              s.status === 'SUBMITTED' ? 'bg-emerald-100 text-emerald-700' :
+              s.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+              s.status === 'BLOCKED' ? 'bg-rose-100 text-rose-700' :
+              'bg-slate-100 text-slate-500'
+            ]">
+              {{ s.status === 'SUBMITTED' ? 'Selesai' : s.status === 'IN_PROGRESS' ? 'Mengerjakan' : s.status === 'BLOCKED' ? 'Terkunci' : 'Belum Mulai' }}
+            </span>
+
+            <!-- Nilai -->
+            <span v-if="s.status === 'SUBMITTED'" class="font-mono font-bold text-indigo-700 text-xs shrink-0 w-12 text-right">
+              {{ s.total_score.toFixed(1) }}
+            </span>
+            <span v-else class="w-12 shrink-0"></span>
+
+            <!-- Lihat Jawaban button -->
+            <button
+              v-if="s.status === 'SUBMITTED'"
+              type="button"
+              @click="openSessionAnswerReview(s)"
+              class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[11px] font-bold transition cursor-pointer active:scale-95 shrink-0 flex items-center gap-1"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Jawaban
+            </button>
+            <div v-else class="w-[72px] shrink-0"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- Tab: Peserta Susulan -->
       <div v-if="scheduleDetailTab === 'makeup'" class="overflow-y-auto flex-1 p-4 space-y-3 text-xs">
         <div v-if="loadingMakeupStudentsList" class="flex items-center justify-center py-10 text-slate-400">
@@ -739,6 +814,13 @@
     </div>
   </div>
 
+  <!-- MODAL: DETAIL JAWABAN SISWA (dari tab Riwayat Jawaban) -->
+  <StudentAnswerReviewModal
+    v-model="showReviewAnswerModal"
+    :session-data="reviewAnswerData"
+    :loading="reviewAnswerLoading"
+  />
+
   <!-- MODAL: TAUTKAN BANK SOAL KE JADWAL -->
   <div v-if="showLinkBankModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
@@ -804,6 +886,7 @@
 <script setup>
 import RichContentRenderer from '../../../components/common/RichContentRenderer.vue'
 import ScheduleProctorModal from '@/components/admin/ScheduleProctorModal.vue'
+import StudentAnswerReviewModal from '../../../components/proctor/StudentAnswerReviewModal.vue'
 import { useDashboard } from './context'
 
 const {
@@ -854,5 +937,12 @@ const {
   switchToEssayTab,
   toggleMakeupStudent,
   canGradeEssay,
+  sessionsList,
+  sessionsLoading,
+  reviewAnswerData,
+  reviewAnswerLoading,
+  showReviewAnswerModal,
+  switchToSessionsTab,
+  openSessionAnswerReview,
 } = useDashboard()
 </script>

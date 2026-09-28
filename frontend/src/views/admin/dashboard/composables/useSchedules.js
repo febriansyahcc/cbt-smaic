@@ -64,6 +64,13 @@ export function useSchedules(ctx) {
   const essayDraft = ref({})
   const essaySaving = ref({})
 
+  // Sessions / Answer History State (for Schedule Detail Modal)
+  const sessionsList = ref([])
+  const sessionsLoading = ref(false)
+  const reviewAnswerData = ref(null)
+  const reviewAnswerLoading = ref(false)
+  const showReviewAnswerModal = ref(false)
+
   // Bulk Selection States & Logic
   const selectedScheduleIds = ref([])
 
@@ -84,6 +91,7 @@ export function useSchedules(ctx) {
     essayDraft.value = {}
     essaySaving.value = {}
     makeupStudentsList.value = []
+    sessionsList.value = []
   }
 
   const fetchEssayAnswers = async (scheduleId) => {
@@ -121,6 +129,44 @@ export function useSchedules(ctx) {
     scheduleDetailTab.value = 'essay'
     if (essayQuestions.value.length === 0 && !essayLoading.value && selectedScheduleDetail.value) {
       fetchEssayAnswers(selectedScheduleDetail.value.id)
+    }
+  }
+
+  const fetchScheduleSessions = async (scheduleId) => {
+    if (sessionsLoading.value) return
+    sessionsLoading.value = true
+    try {
+      const res = await api.get(`/admin/schedules/${scheduleId}/sessions`)
+      sessionsList.value = res.data.data || []
+    } catch (e) {
+      showToast('Gagal memuat daftar sesi ujian.', 'error')
+    } finally {
+      sessionsLoading.value = false
+    }
+  }
+
+  const switchToSessionsTab = () => {
+    scheduleDetailTab.value = 'sessions'
+    if (sessionsList.value.length === 0 && !sessionsLoading.value && selectedScheduleDetail.value) {
+      fetchScheduleSessions(selectedScheduleDetail.value.id)
+    }
+  }
+
+  const openSessionAnswerReview = async (session) => {
+    if (!selectedScheduleDetail.value) return
+    showReviewAnswerModal.value = true
+    reviewAnswerLoading.value = true
+    reviewAnswerData.value = null
+    try {
+      const res = await api.get(
+        `/admin/schedules/${selectedScheduleDetail.value.id}/sessions/${session.session_id}/answers`
+      )
+      reviewAnswerData.value = res.data.data
+    } catch (e) {
+      showReviewAnswerModal.value = false
+      showToast('Gagal memuat jawaban siswa.', 'error')
+    } finally {
+      reviewAnswerLoading.value = false
     }
   }
 
@@ -1055,6 +1101,14 @@ export function useSchedules(ctx) {
     canGradeEssay,
     switchToEssayTab,
     essayTotalPending,
+    sessionsList,
+    sessionsLoading,
+    reviewAnswerData,
+    reviewAnswerLoading,
+    showReviewAnswerModal,
+    fetchScheduleSessions,
+    switchToSessionsTab,
+    openSessionAnswerReview,
     saveEssayQuestion,
     availableScheduleGrades,
     filteredSchedules,
