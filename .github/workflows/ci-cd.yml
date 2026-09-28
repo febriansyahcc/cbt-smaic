@@ -19,7 +19,11 @@ on:
 
 concurrency:
   group: ci-cd-${{ github.ref }}
-  cancel-in-progress: true
+  # Run yang mendorong image (push ke main, tag rilis) tidak boleh dibatalkan.
+  # Dua merge berselang 23 detik pernah membuat build commit terbaru mati,
+  # sementara tag :latest terisi dari build commit yang lebih lama.
+  # Hanya run pull request yang saling membatalkan, supaya menit CI hemat.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
