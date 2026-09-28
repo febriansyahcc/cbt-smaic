@@ -278,6 +278,21 @@ func (s *ProctorService) ResetStudentDeviceSession(studentUserID uuid.UUID) erro
 	return s.repo.DB.Model(&user).Update("session_token", "").Error
 }
 
+// ResetExamSession menghapus sesi ujian dan semua jawaban siswa agar dapat mengulang dari awal.
+func (s *ProctorService) ResetExamSession(sessionID uuid.UUID) error {
+	var session domain.ExamSession
+	if err := s.repo.DB.First(&session, "id = ?", sessionID).Error; err != nil {
+		return errors.New("sesi ujian tidak ditemukan")
+	}
+	if err := s.repo.DB.Where("session_id = ?", sessionID).Delete(&domain.StudentAnswer{}).Error; err != nil {
+		return fmt.Errorf("gagal menghapus jawaban siswa: %w", err)
+	}
+	if err := s.repo.DB.Delete(&session).Error; err != nil {
+		return fmt.Errorf("gagal menghapus sesi ujian: %w", err)
+	}
+	return nil
+}
+
 // ExtendTimeSession extends the server deadline for an individual student session
 func (s *ProctorService) ExtendTimeSession(sessionID uuid.UUID, extraMinutes int, reason string) error {
 	if extraMinutes <= 0 {

@@ -154,6 +154,7 @@ func main() {
 	proctor.Post("/sessions/:id/extend-time", proctorControl, handlers.HandleExtendTimeSession)
 	proctor.Post("/schedules/:id/extend-time-all", proctorControl, handlers.HandleExtendTimeAllSchedule)
 	proctor.Post("/sessions/:id/force-submit", proctorControl, handlers.HandleForceSubmitSession)
+	proctor.Post("/sessions/:id/reset-exam", proctorControl, handlers.HandleResetExamSession)
 	proctor.Get("/reports/excel/:schedule_id", perm(pReports), handlers.HandleExportGradesExcel)
 	proctor.Get("/reports/excel-merged/:schedule_id", perm(pReports), handlers.HandleExportMergedGradesExcel)
 	proctor.Get("/reports/pdf/:schedule_id", perm(pReports), handlers.HandleExportBeritaAcaraPDF)
