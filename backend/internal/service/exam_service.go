@@ -196,8 +196,14 @@ func (s *ExamService) StartOrResumeExam(studentUserID uuid.UUID, scheduleID uuid
 		if session.Status == domain.StatusSubmitted {
 			return nil, errors.New("ujian ini telah Anda selesaikan dan kumpulkan")
 		}
+		// SEMENTARA DINONAKTIFKAN: auto-unblock sesi terkunci agar siswa bisa langsung lanjut.
+		// Aktifkan kembali blok di bawah setelah fitur pelanggaran dihidupkan ulang.
 		if session.Status == domain.StatusBlocked {
-			return nil, errors.New("ujian Anda terkunci karena kuota pelanggaran terlampaui. Hubungi pengawas ruangan")
+			s.repo.DB.Model(&domain.ExamSession{}).Where("id = ?", session.ID).Updates(map[string]interface{}{
+				"status":     domain.StatusInProgress,
+				"updated_at": now,
+			})
+			session.Status = domain.StatusInProgress
 		}
 		// Refresh IP & UserAgent tanpa menimpa kolom lain (status, pelanggaran) yang bisa berubah bersamaan.
 		s.repo.DB.Model(&domain.ExamSession{}).Where("id = ?", session.ID).Updates(map[string]interface{}{

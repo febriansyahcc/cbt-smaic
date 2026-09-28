@@ -179,6 +179,15 @@
           <span>Samakan Token</span>
         </button>
         <button
+          @click="openBulkExtendTimeModal()"
+          class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Tambah Waktu</span>
+        </button>
+        <button
           @click="selectedScheduleIds = []"
           class="px-2.5 py-1.5 text-slate-500 hover:text-slate-800 active:scale-95 font-semibold transition cursor-pointer"
         >
@@ -602,6 +611,102 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal: Tambah Waktu Serentak -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="showBulkExtendTimeModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/50" @click="showBulkExtendTimeModal = false" />
+          <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-5">
+            <!-- Header -->
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="font-black text-slate-900 text-sm">Tambah Waktu Serentak</div>
+                  <div class="text-[11px] text-slate-500">{{ selectedScheduleIds.length }} jadwal terpilih</div>
+                </div>
+              </div>
+              <button @click="showBulkExtendTimeModal = false" class="text-slate-400 hover:text-slate-600 cursor-pointer mt-0.5">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Preset buttons -->
+            <div>
+              <div class="text-[11px] font-bold text-slate-500 uppercase mb-2">Pilih Durasi Tambahan</div>
+              <div class="grid grid-cols-4 gap-2">
+                <button
+                  v-for="preset in [5, 10, 15, 30]"
+                  :key="preset"
+                  type="button"
+                  @click="bulkExtendTimeMinutes = preset"
+                  :class="[
+                    'py-2 rounded-xl text-xs font-bold transition cursor-pointer border',
+                    bulkExtendTimeMinutes === preset
+                      ? 'bg-amber-500 text-white border-amber-500'
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-amber-400 hover:text-amber-600'
+                  ]"
+                >
+                  +{{ preset }} mnt
+                </button>
+              </div>
+            </div>
+
+            <!-- Custom input -->
+            <div>
+              <label class="text-[11px] font-bold text-slate-500 uppercase mb-1 block">Atau Masukkan Menit Manual</label>
+              <input
+                v-model.number="bulkExtendTimeMinutes"
+                type="number"
+                min="1"
+                max="180"
+                placeholder="Masukkan jumlah menit..."
+                class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
+              />
+            </div>
+
+            <!-- Reason -->
+            <div>
+              <label class="text-[11px] font-bold text-slate-500 uppercase mb-1 block">Alasan <span class="text-slate-400 font-normal normal-case">(opsional)</span></label>
+              <input
+                v-model="bulkExtendTimeReason"
+                type="text"
+                placeholder="mis: jaringan lambat, mati lampu..."
+                class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
+              />
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-2 pt-1">
+              <button
+                @click="showBulkExtendTimeModal = false"
+                class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 active:scale-95 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                @click="submitBulkExtendTime()"
+                :disabled="!bulkExtendTimeMinutes || bulkExtendTimeMinutes <= 0 || isBulkExtendingTime"
+                class="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <svg v-if="isBulkExtendingTime" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                <span>{{ isBulkExtendingTime ? 'Memproses...' : `Tambah +${bulkExtendTimeMinutes || 0} Menit` }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -618,6 +723,12 @@ const {
   bulkActivateSchedules,
   bulkDeactivateSchedules,
   bulkRegenerateTokens,
+  showBulkExtendTimeModal,
+  bulkExtendTimeMinutes,
+  bulkExtendTimeReason,
+  isBulkExtendingTime,
+  openBulkExtendTimeModal,
+  submitBulkExtendTime,
   canManageSchedules,
   canReadPeople,
   copyTokenToClipboard,

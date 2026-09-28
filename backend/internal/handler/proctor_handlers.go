@@ -261,6 +261,20 @@ func (h *Handlers) HandleResetStudentSession(c *fiber.Ctx) error {
 	})
 }
 
+func (h *Handlers) HandleResetExamSession(c *fiber.Ctx) error {
+	sessionID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "ID sesi tidak valid"})
+	}
+	if err := h.proctorService.ResetExamSession(sessionID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "Sesi ujian berhasil direset. Siswa dapat mengulang dari awal.",
+	})
+}
+
 func (h *Handlers) HandleExportGradesExcel(c *fiber.Ctx) error {
 	scheduleID, err := uuid.Parse(c.Params("schedule_id"))
 	if err != nil {

@@ -81,7 +81,8 @@ export const useExamStore = defineStore('exam', {
       this.isAutoSubmitting = false
       this.maxViolations = payload.max_violations
       this.violationCount = payload.current_violations || 0
-      this.isBlocked = this.violationCount >= this.maxViolations
+      // SEMENTARA DINONAKTIFKAN — aktifkan kembali setelah sistem stabil
+      this.isBlocked = false
       this.questions = payload.questions || []
       this.currentIndex = 0
 

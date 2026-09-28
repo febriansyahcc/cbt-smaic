@@ -154,6 +154,7 @@ func main() {
 	proctor.Post("/sessions/:id/extend-time", proctorControl, handlers.HandleExtendTimeSession)
 	proctor.Post("/schedules/:id/extend-time-all", proctorControl, handlers.HandleExtendTimeAllSchedule)
 	proctor.Post("/sessions/:id/force-submit", proctorControl, handlers.HandleForceSubmitSession)
+	proctor.Post("/sessions/:id/reset-exam", proctorControl, handlers.HandleResetExamSession)
 	proctor.Get("/reports/excel/:schedule_id", perm(pReports), handlers.HandleExportGradesExcel)
 	proctor.Get("/reports/excel-merged/:schedule_id", perm(pReports), handlers.HandleExportMergedGradesExcel)
 	proctor.Get("/reports/pdf/:schedule_id", perm(pReports), handlers.HandleExportBeritaAcaraPDF)
@@ -208,6 +209,7 @@ func main() {
 	admin.Get("/schedules", handlers.HandleGetAdminSchedules)
 	admin.Post("/schedules", schedulesMgr, handlers.HandleCreateSchedule)
 	admin.Post("/schedules/regenerate-tokens", schedulesMgr, handlers.HandleRegenerateSessionTokens)
+	admin.Post("/schedules/bulk-extend-time", schedulesMgr, handlers.HandleBulkExtendTime)
 	admin.Put("/schedules/:id", schedulesMgr, handlers.HandleUpdateSchedule)
 	// Menautkan bank soal mengubah jadwal: hanya pengelola jadwal (schedules:manage; ADMIN dan "*" otomatis).
 	admin.Post("/schedules/:id/link-bank", schedulesMgr, handlers.HandleLinkScheduleBank)
