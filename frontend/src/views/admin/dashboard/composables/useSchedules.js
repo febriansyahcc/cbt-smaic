@@ -394,6 +394,37 @@ export function useSchedules(ctx) {
     }
   }
 
+  // Bulk Extend Time
+  const showBulkExtendTimeModal = ref(false)
+  const bulkExtendTimeMinutes = ref(10)
+  const bulkExtendTimeReason = ref('')
+  const isBulkExtendingTime = ref(false)
+
+  const openBulkExtendTimeModal = () => {
+    if (!canManageSchedules.value || !selectedScheduleIds.value.length) return
+    bulkExtendTimeMinutes.value = 10
+    bulkExtendTimeReason.value = ''
+    showBulkExtendTimeModal.value = true
+  }
+
+  const submitBulkExtendTime = async () => {
+    if (!bulkExtendTimeMinutes.value || bulkExtendTimeMinutes.value <= 0) return
+    isBulkExtendingTime.value = true
+    try {
+      const res = await api.post('/admin/schedules/bulk-extend-time', {
+        schedule_ids: selectedScheduleIds.value,
+        extra_minutes: bulkExtendTimeMinutes.value,
+        reason: bulkExtendTimeReason.value,
+      })
+      showBulkExtendTimeModal.value = false
+      showToast(res.data?.message || `Waktu berhasil ditambah ${bulkExtendTimeMinutes.value} menit`, 'success')
+    } catch (e) {
+      showToast(e.response?.data?.message || 'Gagal menambah waktu', 'error')
+    } finally {
+      isBulkExtendingTime.value = false
+    }
+  }
+
   // Print Document States & Methods
   const showPrintModal = ref(false)
   const printDocType = ref('attendance')
@@ -1038,6 +1069,12 @@ export function useSchedules(ctx) {
     bulkActivateSchedules,
     bulkDeactivateSchedules,
     bulkRegenerateTokens,
+    showBulkExtendTimeModal,
+    bulkExtendTimeMinutes,
+    bulkExtendTimeReason,
+    isBulkExtendingTime,
+    openBulkExtendTimeModal,
+    submitBulkExtendTime,
     showPrintModal,
     printDocType,
     printSchedule,

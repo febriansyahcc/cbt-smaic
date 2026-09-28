@@ -628,3 +628,31 @@ func (h *Handlers) HandleRemoveMakeupStudent(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"success": true, "message": "Peserta berhasil dihapus dari daftar susulan"})
 }
+
+type BulkExtendTimeRequest struct {
+	ScheduleIDs  []uuid.UUID `json:"schedule_ids"`
+	ExtraMinutes int         `json:"extra_minutes"`
+	Reason       string      `json:"reason"`
+}
+
+func (h *Handlers) HandleBulkExtendTime(c *fiber.Ctx) error {
+	var req BulkExtendTimeRequest
+	if err := c.BodyParser(&req); err != nil || len(req.ScheduleIDs) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Pilih minimal satu jadwal"})
+	}
+	if req.ExtraMinutes <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Jumlah menit tambahan harus lebih dari 0"})
+	}
+
+	totalAffected := 0
+	for _, sid := range req.ScheduleIDs {
+		count, _ := h.proctorService.ExtendTimeAllSchedule(sid, req.ExtraMinutes, req.Reason)
+		totalAffected += count
+	}
+
+	return c.JSON(fiber.Map{
+		"success":        true,
+		"affected_count": totalAffected,
+		"message":        fmt.Sprintf("Waktu ujian berhasil ditambah %d menit untuk %d sesi aktif", req.ExtraMinutes, totalAffected),
+	})
+}
