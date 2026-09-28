@@ -90,7 +90,7 @@ export function useSchedules(ctx) {
     if (essayLoading.value) return
     essayLoading.value = true
     try {
-      const res = await api.get(`/api/v1/admin/schedules/${scheduleId}/essay-answers`)
+      const res = await api.get(`/admin/schedules/${scheduleId}/essay-answers`)
       essayQuestions.value = res.data.data || []
       // Initialize draft from existing data
       const draft = {}
