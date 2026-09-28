@@ -17,6 +17,14 @@
 
     <div class="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
       <div class="bg-white py-8 px-6 shadow-xl shadow-slate-200/50 rounded-3xl border border-slate-200">
+        <!-- Pemberitahuan sesi (bukan kegagalan kredensial) -->
+        <div v-if="sessionNotice" class="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800 flex items-start space-x-2">
+          <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-px" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{{ sessionNotice }}</span>
+        </div>
+
         <!-- Error Alert -->
         <div v-if="authStore.error" class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-center space-x-2">
           <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -89,18 +97,27 @@ const authStore = useAuthStore()
 
 const username = ref('')
 const password = ref('')
+// Pemberitahuan sesi berakhir (login di perangkat lain, sesi direset pengawas) dipisahkan dari
+// authStore.error agar tidak tampil sebagai kegagalan kredensial: siswa dan guru membaca kotak
+// merah itu sebagai "password saya ditolak", padahal password mereka tidak berubah.
+const sessionNotice = ref('')
 
 onMounted(() => {
   // QR kartu peserta membuka /login?u=<No. Ujian> agar username langsung terisi.
   if (typeof route.query.u === 'string') username.value = route.query.u.trim()
-  const loginErr = sessionStorage.getItem('cbt_login_error')
-  if (loginErr) {
-    authStore.error = loginErr
-    sessionStorage.removeItem('cbt_login_error')
+  try {
+    const notice = sessionStorage.getItem('cbt_login_notice')
+    if (notice) {
+      sessionNotice.value = notice
+      sessionStorage.removeItem('cbt_login_notice')
+    }
+  } catch (e) {
+    // sessionStorage tidak tersedia (mode privat): form login tetap bisa dipakai.
   }
 })
 
 const handleLogin = async () => {
+  sessionNotice.value = ''
   try {
     const data = await authStore.login(username.value, password.value)
     router.push(homePathFor(data.user))

@@ -57,15 +57,20 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async fetchMe() {
+    // timeout dipakai saat validasi sesi di router: jaringan aula ujian bisa menggantung lama,
+    // dan siswa tidak boleh menunggu tanpa batas sebelum halaman ujian muncul.
+    async fetchMe({ timeout } = {}) {
       if (!this.token) return
       try {
-        const res = await api.get('/auth/me')
+        const res = await api.get('/auth/me', timeout ? { timeout } : undefined)
         this.user = res.data.data.user
         this.profile = res.data.data.student_profile || null
         localStorage.setItem('cbt_user', JSON.stringify(this.user))
         if (this.profile) {
           localStorage.setItem('cbt_profile', JSON.stringify(this.profile))
+        } else {
+          // Profil siswa sebelumnya tidak boleh tertinggal di komputer yang dipakai bergantian.
+          localStorage.removeItem('cbt_profile')
         }
       } catch (err) {
         console.error('Failed to refresh user profile', err)

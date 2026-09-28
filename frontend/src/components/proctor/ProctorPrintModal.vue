@@ -37,6 +37,17 @@
           </button>
         </div>
 
+        <!-- Proctor Name Input -->
+        <div class="flex items-center gap-1.5">
+          <label class="text-[11px] font-bold text-slate-500 shrink-0">Nama Pengawas:</label>
+          <input
+            v-model="localProctorName"
+            type="text"
+            placeholder="Nama lengkap & gelar"
+            class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-400 focus:outline-none w-48"
+          />
+        </div>
+
         <button @click="close" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-200 transition cursor-pointer">
           ✕
         </button>
@@ -90,7 +101,7 @@
                   <td class="py-1 font-mono font-bold">{{ proctorData?.exam_token || '------' }}</td>
                   <td class="py-1 font-bold">Pengawas / Guru</td>
                   <td class="py-1">:</td>
-                  <td class="py-1 font-semibold">{{ userName || 'Pengawas Ruang' }}</td>
+                  <td class="py-1 font-semibold">{{ localProctorName || 'Pengawas Ruang' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -153,7 +164,7 @@
                 <p class="font-bold">Demak, {{ formatScheduleDateFull(new Date()) }}</p>
                 <p class="font-semibold">Pengawas Ruang Ujian</p>
                 <div class="h-20"></div>
-                <p class="font-black underline uppercase">{{ userName || '....................................................' }}</p>
+                <p class="font-black underline uppercase">{{ localProctorName || '....................................................' }}</p>
                 <p class="text-[11px] text-slate-600">NIP. ............................................</p>
               </div>
             </div>
@@ -239,7 +250,7 @@
               <div>
                 <p class="font-bold">Pengawas Ujian 1,</p>
                 <div class="h-20"></div>
-                <p class="font-black underline uppercase">{{ userName || '....................................................' }}</p>
+                <p class="font-black underline uppercase">{{ localProctorName || '....................................................' }}</p>
                 <p class="text-[11px] text-slate-600">NIP. ............................................</p>
               </div>
               <div>
@@ -284,7 +295,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 
 // Modal cetak Daftar Hadir dan Berita Acara dari data pengawasan langsung (live).
@@ -296,13 +307,18 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const authStore = useAuthStore()
-const userName = computed(() => authStore.user?.full_name || '')
+
+// Nama bisa diisi/diubah manual sebelum cetak — praisi dari profil user login.
+const localProctorName = ref(authStore.user?.full_name || '')
 
 const printDocType = ref(props.docType)
 watch(
   () => props.modelValue,
   (open) => {
-    if (open) printDocType.value = props.docType
+    if (open) {
+      printDocType.value = props.docType
+      localProctorName.value = authStore.user?.full_name || ''
+    }
   }
 )
 
