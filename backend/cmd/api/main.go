@@ -67,6 +67,7 @@ func main() {
 
 	handlers := handler.NewHandlers(db)
 	handlers.BackupService().StartScheduler(context.Background())
+	handlers.ExamService().StartExpiredSessionSweeper(context.Background())
 
 	// Static Media Serving. File unggahan hanya boleh tampil sebagai gambar: CSP sandbox
 	// mematikan script bila file dibuka langsung (termasuk SVG lama yang sudah terunggah).

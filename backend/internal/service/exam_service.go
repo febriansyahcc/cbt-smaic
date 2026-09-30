@@ -1,9 +1,11 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"time"
@@ -319,6 +321,9 @@ func (s *ExamService) SyncAnswers(sessionID uuid.UUID, studentUserID uuid.UUID, 
 	now := time.Now()
 	// Check grace deadline (30 seconds grace for network latency)
 	if now.After(session.ServerDeadline.Add(30 * time.Second)) {
+		if session.Status != domain.StatusSubmitted {
+			_, _ = s.submitExam(session.ID, studentUserID, true, nil)
+		}
 		return 0, session.ServerDeadline, errors.New("waktu pengerjaan telah habis")
 	}
 
@@ -609,3 +614,63 @@ func gradeAnswer(q domain.Question, studentAns domain.StudentAnswer, exists bool
 		return 0, true
 	}
 }
+
+// AutoCloseExpiredSessions mencari semua sesi ujian aktif yang telah melewati batas deadline server
+// (ditambah grace period 30 detik untuk latensi jaringan) lalu mengumpulkan dan menilainya secara otomatis.
+func (s *ExamService) AutoCloseExpiredSessions() (int, error) {
+	now := time.Now()
+	// Gunakan toleransi 30 detik sesuai toleransi sinkronisasi jaringan pada SyncAnswers
+	cutoff := now.Add(-30 * time.Second)
+
+	var expiredSessions []domain.ExamSession
+	err := s.repo.DB.Where(
+		"status IN ? AND server_deadline <= ?",
+		[]domain.SessionStatus{domain.StatusInProgress, domain.StatusBlocked},
+		cutoff,
+	).Find(&expiredSessions).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	if len(expiredSessions) == 0 {
+		return 0, nil
+	}
+
+	closedCount := 0
+	for _, sess := range expiredSessions {
+		score, err := s.submitExam(sess.ID, sess.StudentID, true, nil)
+		if err != nil {
+			log.Printf("[ExamSweeper] Gagal auto-close sesi %s (siswa %s): %v", sess.ID, sess.StudentID, err)
+			continue
+		}
+		closedCount++
+		log.Printf("[ExamSweeper] Auto-close sesi kedaluwarsa: session_id=%s student_id=%s total_score=%.2f", sess.ID, sess.StudentID, score)
+	}
+
+	return closedCount, nil
+}
+
+// StartExpiredSessionSweeper menjalankan goroutine berkala setiap 15 detik untuk memfinalisasi
+// sesi-sesi ujian yang telah melewati batas waktu pengerjaan.
+func (s *ExamService) StartExpiredSessionSweeper(ctx context.Context) {
+	log.Println("[ExamService] Sweeper sesi kedaluwarsa aktif (pengecekan otomatis setiap 15 detik)")
+	go func() {
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				count, err := s.AutoCloseExpiredSessions()
+				if err != nil {
+					log.Printf("[ExamService] Sweeper error: %v", err)
+				} else if count > 0 {
+					log.Printf("[ExamService] Sweeper berhasil menyelesaikan %d sesi kedaluwarsa", count)
+				}
+			}
+		}
+	}()
+}
+

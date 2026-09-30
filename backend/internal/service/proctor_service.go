@@ -92,6 +92,25 @@ func (s *ProctorService) GetLiveProctorData(scheduleID uuid.UUID) (*LiveProctorS
 	// Fetch existing sessions for this schedule
 	var sessions []domain.ExamSession
 	s.repo.DB.Where("schedule_id = ?", schedule.ID).Find(&sessions)
+
+	// Lazy Auto-Close Trigger: jika ada sesi yang telah melewati batas deadline server (+ 30 detik toleransi),
+	// otomatis kumpulkan dan nilai agar tampilan pengawas langsung mutakhir menjadi "Selesai"
+	now := time.Now()
+	cutoff := now.Add(-30 * time.Second)
+	examSvc := NewExamService(s.repo)
+	needReload := false
+	for _, sess := range sessions {
+		if (sess.Status == domain.StatusInProgress || sess.Status == domain.StatusBlocked) && sess.ServerDeadline.Before(cutoff) {
+			if _, err := examSvc.submitExam(sess.ID, sess.StudentID, true, nil); err == nil {
+				needReload = true
+			}
+		}
+	}
+	if needReload {
+		sessions = nil
+		s.repo.DB.Where("schedule_id = ?", schedule.ID).Find(&sessions)
+	}
+
 	sessionMap := make(map[uuid.UUID]domain.ExamSession)
 	for _, sess := range sessions {
 		sessionMap[sess.StudentID] = sess
@@ -124,7 +143,7 @@ func (s *ProctorService) GetLiveProctorData(scheduleID uuid.UUID) (*LiveProctorS
 	present := 0
 	submitted := 0
 	blocked := 0
-	now := time.Now()
+	now = time.Now()
 	var items []ProctorStudentItem
 
 	className := "Kelas"

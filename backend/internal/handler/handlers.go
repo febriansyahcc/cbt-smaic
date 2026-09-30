@@ -20,6 +20,11 @@ func (h *Handlers) BackupService() *service.BackupService {
 	return h.backupService
 }
 
+// ExamService dipakai main.go untuk menjalankan sweeper sesi ujian kedaluwarsa.
+func (h *Handlers) ExamService() *service.ExamService {
+	return h.examService
+}
+
 func NewHandlers(repo *repository.Database) *Handlers {
 	return &Handlers{
 		repo:           repo,
