@@ -162,6 +162,7 @@ type QuestionBank struct {
 	Subject        Subject     `gorm:"foreignKey:SubjectID" json:"subject,omitempty"`
 	Grade          string      `gorm:"size:20;not null;default:''" json:"grade"`                                   // Tingkat kelas (X/XI/XII); kosong = bank lama tanpa tingkat
 	Classes        []ClassRoom `gorm:"many2many:question_bank_classes;constraint:OnDelete:CASCADE" json:"classes"` // Cakupan kelas khusus; kosong = ikut Grade
+	EventID        *uuid.UUID  `gorm:"type:uuid;index" json:"event_id,omitempty"`                                 // Event ujian pemilik naskah; kosong = bank lama tanpa event
 	CreatedByID    uuid.UUID   `gorm:"type:uuid;not null" json:"created_by_id"`
 	CreatedBy      User        `gorm:"foreignKey:CreatedByID" json:"created_by,omitempty"`
 	TotalQuestions int         `gorm:"default:0" json:"total_questions"`

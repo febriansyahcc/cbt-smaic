@@ -13,6 +13,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // ---------------- ADMIN & QUESTION BANK HANDLERS ----------------
@@ -103,10 +104,23 @@ func (h *Handlers) HandleGetReadinessMatrix(c *fiber.Ctx) error {
 	var events []domain.ExamEvent
 	h.repo.DB.Order("created_at DESC").Find(&events)
 
+	// Bank soal disaring per event: milik event ini, bank lama tanpa event, atau bank yang
+	// ditautkan jadwal event ini (mis. naskah dipakai ulang dari event lain).
+	scopeBanksToEvent := func(q *gorm.DB) *gorm.DB {
+		if eventIDQuery == "" {
+			return q
+		}
+		return q.Where(
+			"event_id = ? OR event_id IS NULL OR id IN (?)",
+			eventIDQuery,
+			h.repo.DB.Model(&domain.ExamSchedule{}).Select("bank_id").Where("event_id = ? AND bank_id IS NOT NULL", eventIDQuery),
+		)
+	}
+
 	if !hasReadAll {
 		// 1. Bank soal: hanya yang dibuat pengguna ini (mengampu mapel tidak membuka bank orang lain)
-		h.repo.DB.Preload("Subject").Preload("CreatedBy").Preload("Classes").
-			Where("created_by_id = ?", user.ID).
+		scopeBanksToEvent(h.repo.DB.Preload("Subject").Preload("CreatedBy").Preload("Classes").
+			Where("created_by_id = ?", user.ID)).
 			Order("created_at DESC").
 			Find(&banks)
 
@@ -131,7 +145,7 @@ func (h *Handlers) HandleGetReadinessMatrix(c *fiber.Ctx) error {
 		}
 	} else {
 		// Pengguna memiliki hak akses questions:read_all atau RoleAdmin: Ambil seluruh data secara holistik
-		bankQuery := h.repo.DB.Preload("Subject").Preload("CreatedBy").Preload("Classes").Order("created_at DESC")
+		bankQuery := scopeBanksToEvent(h.repo.DB.Preload("Subject").Preload("CreatedBy").Preload("Classes")).Order("created_at DESC")
 		schedQuery := h.repo.DB.Preload("Event").Preload("Subject").Preload("Bank").Preload("Bank.Subject").Preload("Bank.CreatedBy").Preload("ClassRoom").
 			Order("start_time ASC, created_at DESC")
 
@@ -297,6 +311,7 @@ func (h *Handlers) HandleQuickCreateAndLinkBank(c *fiber.Ctx) error {
 	bank := domain.QuestionBank{
 		ID:             uuid.New(),
 		SubjectID:      *sched.SubjectID,
+		EventID:        sched.EventID,
 		Title:          title,
 		CreatedByID:    user.ID,
 		TotalQuestions: 0,

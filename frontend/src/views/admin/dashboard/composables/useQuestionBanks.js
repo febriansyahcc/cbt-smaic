@@ -7,6 +7,7 @@ export function useQuestionBanks(ctx) {
     authStore,
     classes,
     currentEventSchedules,
+    currentScopedEventId,
     extractExportErrorMessage,
     readinessData,
     scheduleClassIdOf,
@@ -88,7 +89,12 @@ export function useQuestionBanks(ctx) {
         if (!subId) return
         if (!covered.has(subId)) covered.set(subId, new Set())
         const set = covered.get(subId)
-        if (b.classes?.length) {
+        // Bank event lain (dipakai ulang) atau bank lama tanpa event hanya menutup kelas
+        // jadwal event ini yang menautkannya, bukan seluruh cakupan kelas/angkatannya.
+        const evId = currentScopedEventId.value
+        if (evId && b.event_id !== evId) {
+          scheds.filter(s => s.bank_id === b.id).forEach(s => set.add(scheduleClassIdOf(s)))
+        } else if (b.classes?.length) {
           b.classes.forEach(c => set.add(c.id))
         } else if (b.grade) {
           classes.value.filter(c => c.grade === b.grade).forEach(c => set.add(c.id))
@@ -404,6 +410,7 @@ export function useQuestionBanks(ctx) {
         const res = await api.post('/admin/question-banks', {
           subject_id: newBankForm.value.subject_id,
           ...scopePayload,
+          event_id: currentScopedEventId.value || null,
           title: newBankForm.value.title.trim()
         })
         showToast('Bank soal baru berhasil dibuat!', 'success')

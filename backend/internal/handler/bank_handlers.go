@@ -35,6 +35,7 @@ type CreateQuestionBankRequest struct {
 	SubjectID uuid.UUID    `json:"subject_id"`
 	Grade     *string      `json:"grade"`
 	ClassIDs  *[]uuid.UUID `json:"class_ids"`
+	EventID   *uuid.UUID   `json:"event_id"`
 	Title     string       `json:"title"`
 }
 
@@ -62,6 +63,14 @@ func (h *Handlers) HandleCreateQuestionBank(c *fiber.Ctx) error {
 		TotalQuestions: 0,
 		IsLocked:       false,
 		CreatedAt:      time.Now(),
+	}
+
+	if req.EventID != nil && *req.EventID != uuid.Nil {
+		var ev domain.ExamEvent
+		if err := h.repo.DB.Select("id").First(&ev, "id = ?", *req.EventID).Error; err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Event ujian tidak ditemukan"})
+		}
+		bank.EventID = &ev.ID
 	}
 
 	if req.ClassIDs != nil {

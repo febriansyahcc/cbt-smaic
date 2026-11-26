@@ -81,8 +81,53 @@ func InitDB() (*Database, error) {
 	repo.GrantQuestionsPrintOnce()
 	repo.EnsureClassSubjectAssignments()
 	repo.MigrateOrSeedDefaultEvent()
+	repo.BackfillQuestionBankEvents()
 
 	return repo, nil
+}
+
+// BackfillQuestionBankEvents mengisi event_id bank soal lama (sebelum bank soal terikat event):
+// pertama dari jadwal yang menautkannya, lalu dari judul berawalan "<judul event> - ".
+// Bank yang tetap tidak dikenali dibiarkan kosong dan tampil di semua event.
+func (d *Database) BackfillQuestionBankEvents() {
+	var banks []domain.QuestionBank
+	if err := d.DB.Select("id", "title").Where("event_id IS NULL").Find(&banks).Error; err != nil || len(banks) == 0 {
+		return
+	}
+	var events []domain.ExamEvent
+	d.DB.Select("id", "title").Find(&events)
+
+	filled := 0
+	for _, b := range banks {
+		var sched domain.ExamSchedule
+		var eventID *uuid.UUID
+		err := d.DB.Select("event_id").
+			Where("bank_id = ? AND event_id IS NOT NULL", b.ID).
+			Order("start_time ASC").
+			First(&sched).Error
+		if err == nil && sched.EventID != nil {
+			eventID = sched.EventID
+		} else {
+			// Judul terpanjang menang agar "ASTS Ganjil 2" tidak tertukar dengan "ASTS Ganjil".
+			best := 0
+			for i := range events {
+				prefix := events[i].Title + " - "
+				if events[i].Title != "" && len(prefix) > best && len(b.Title) > len(prefix) && b.Title[:len(prefix)] == prefix {
+					best = len(prefix)
+					eventID = &events[i].ID
+				}
+			}
+		}
+		if eventID == nil {
+			continue
+		}
+		if d.DB.Model(&domain.QuestionBank{}).Where("id = ?", b.ID).Update("event_id", *eventID).Error == nil {
+			filled++
+		}
+	}
+	if filled > 0 {
+		log.Printf("Backfilled event_id for %d question bank(s)", filled)
+	}
 }
 
 func (d *Database) MigrateOrSeedDefaultEvent() {

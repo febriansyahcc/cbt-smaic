@@ -90,7 +90,7 @@ export function useDashboardNavigation(ctx) {
         canReadPeople.value ? api.get('/admin/students') : emptyList,
         canReadPeople.value ? api.get('/admin/teachers') : emptyList,
         api.get('/admin/classes'),
-        api.get('/admin/readiness-matrix'),
+        api.get('/admin/readiness-matrix', { params: schedParams }),
         api.get('/admin/events'),
         api.get('/admin/subjects'),
         api.get('/admin/class-subjects'),
