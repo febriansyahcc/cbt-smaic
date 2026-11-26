@@ -51,8 +51,14 @@ export function useProctoring(ctx) {
 
   const loadProctorSchedules = async () => {
     try {
-      const res = await api.get('/proctor/schedules')
+      // Jadwal pengawasan dibatasi event terpilih agar sesi event lain tidak ikut tampil.
+      const evId = ctx.currentScopedEventId?.value
+      const res = await api.get('/proctor/schedules', { params: evId ? { event_id: evId } : {} })
       proctorSchedules.value = res.data.data || []
+      // Jadwal terpilih sebelumnya bisa milik event lain setelah berpindah event.
+      if (activeProctorScheduleId.value && !proctorSchedules.value.some(s => s.id === activeProctorScheduleId.value)) {
+        activeProctorScheduleId.value = null
+      }
       if (proctorSchedules.value.length > 0 && !activeProctorScheduleId.value) {
         // Utamakan jadwal yang dapat dikendalikan pengguna (can_control tidak ada = dianggap true)
         const firstControllable = proctorSchedules.value.find(s => s.can_control !== false)

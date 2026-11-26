@@ -38,6 +38,10 @@ func (h *Handlers) HandleGetProctorSchedules(c *fiber.Ctx) error {
 		recentCutoff := time.Now().Add(-7 * 24 * time.Hour)
 		query := h.repo.DB.Preload("Bank").Preload("Bank.Subject").Preload("ClassRoom").
 			Where("is_active = ? OR end_time >= ?", true, recentCutoff)
+		// Tab Live Proctoring terikat event terpilih; tanpa event_id (mis. Beranda) semua event dikembalikan.
+		if evID, err := uuid.Parse(strings.TrimSpace(c.Query("event_id"))); err == nil {
+			query = query.Where("event_id = ?", evID)
+		}
 		if !viewScope.All {
 			ids := make([]uuid.UUID, 0, len(viewScope.ScheduleIDs))
 			for id := range viewScope.ScheduleIDs {
